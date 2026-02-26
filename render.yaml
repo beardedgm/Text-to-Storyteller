@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: text-to-storyteller
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 2 --threads 4 --timeout 300
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: TTS_VOICE_NAME
+        value: en-US-Studio-Q
+      - key: TTS_SPEAKING_RATE
+        value: "0.95"
+      - key: TTS_PITCH
+        value: "-2.0"

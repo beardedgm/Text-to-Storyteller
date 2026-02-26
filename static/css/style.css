@@ -1,0 +1,386 @@
+/* === Reset & Base === */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+[hidden] {
+    display: none !important;
+}
+
+:root {
+    --bg-primary: #1a1a2e;
+    --bg-secondary: #16213e;
+    --bg-card: #0f3460;
+    --text-primary: #e0e0e0;
+    --text-secondary: #a0a0b0;
+    --accent: #d4a574;
+    --accent-hover: #e8be93;
+    --error: #e74c3c;
+    --success: #2ecc71;
+    --border: #2a2a4a;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+}
+
+/* === Header === */
+header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+
+header h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.02em;
+}
+
+.subtitle {
+    color: var(--text-secondary);
+    margin-top: 0.4rem;
+    font-size: 1.05rem;
+}
+
+/* === Tabs === */
+.tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 0;
+}
+
+.tab {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: background 0.2s, color 0.2s;
+}
+
+.tab:first-child {
+    border-radius: 8px 0 0 0;
+}
+
+.tab:last-child {
+    border-radius: 0 8px 0 0;
+}
+
+.tab.active {
+    background: var(--bg-card);
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.tab:hover:not(.active) {
+    background: #1c2a4e;
+}
+
+/* === Tab Content === */
+.tab-content {
+    display: none;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 1.5rem;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* === Drop Zone === */
+.drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 2.5rem 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.drop-zone:hover,
+.drop-zone.drag-over {
+    border-color: var(--accent);
+    background: rgba(212, 165, 116, 0.05);
+}
+
+.drop-zone-inner svg {
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+}
+
+.drop-zone-inner p {
+    color: var(--text-secondary);
+}
+
+.drop-zone-hint {
+    font-size: 0.85rem;
+    margin-top: 0.3rem;
+}
+
+.file-selected {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding: 0.6rem 1rem;
+    background: rgba(212, 165, 116, 0.1);
+    border-radius: 6px;
+    color: var(--accent);
+    font-size: 0.95rem;
+}
+
+/* === Textarea === */
+textarea {
+    width: 100%;
+    min-height: 200px;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.95rem;
+    resize: vertical;
+    line-height: 1.6;
+}
+
+textarea::placeholder {
+    color: var(--text-secondary);
+}
+
+textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+/* === Settings Panel === */
+.settings-panel {
+    margin-top: 1.5rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.settings-panel summary {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    user-select: none;
+}
+
+.settings-panel summary:hover {
+    color: var(--text-primary);
+}
+
+.settings-grid {
+    display: grid;
+    gap: 1.25rem;
+    padding: 0 1rem 1rem;
+}
+
+.setting label {
+    display: block;
+    margin-bottom: 0.4rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.setting select,
+.setting input[type="range"] {
+    width: 100%;
+}
+
+select {
+    padding: 0.5rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    background: var(--accent);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+/* === Buttons === */
+.btn-generate {
+    display: block;
+    width: 100%;
+    margin-top: 1.5rem;
+    padding: 0.9rem;
+    background: var(--accent);
+    color: var(--bg-primary);
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-generate:hover {
+    background: var(--accent-hover);
+}
+
+.btn-generate:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-download {
+    display: inline-block;
+    padding: 0.8rem 2rem;
+    background: var(--success);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.05rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-download:hover {
+    background: #27ae60;
+}
+
+.btn-clear {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0 0.3rem;
+    line-height: 1;
+}
+
+.btn-clear:hover {
+    color: var(--text-primary);
+}
+
+/* === Error Banner === */
+.error-banner {
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    background: rgba(231, 76, 60, 0.15);
+    border: 1px solid var(--error);
+    border-radius: 8px;
+    color: var(--error);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* === Progress === */
+.progress-section {
+    margin-top: 1.5rem;
+    text-align: center;
+}
+
+.progress-section h3 {
+    margin-bottom: 1rem;
+    color: var(--accent);
+}
+
+.progress-bar-track {
+    width: 100%;
+    height: 10px;
+    background: var(--border);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-hover));
+    border-radius: 5px;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    margin-top: 0.75rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* === Download === */
+.download-section {
+    margin-top: 1.5rem;
+    text-align: center;
+}
+
+.download-section h3 {
+    margin-bottom: 1rem;
+    color: var(--success);
+}
+
+/* === Footer === */
+footer {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+/* === Responsive === */
+@media (max-width: 600px) {
+    .container {
+        padding: 1rem;
+    }
+
+    header h1 {
+        font-size: 1.6rem;
+    }
+
+    .drop-zone {
+        padding: 1.5rem 1rem;
+    }
+}

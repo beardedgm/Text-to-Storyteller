@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block content %}
+<header>
+    <h1>Text to Storyteller</h1>
+    <p class="subtitle">Transform your adventure modules into narrated audio</p>
+</header>
+
+<main>
+    <!-- Input Tabs -->
+    <div class="tabs">
+        <button class="tab active" data-tab="upload">Upload File</button>
+        <button class="tab" data-tab="paste">Paste Text</button>
+    </div>
+
+    <!-- Upload Tab -->
+    <div class="tab-content active" id="tab-upload">
+        <div class="drop-zone" id="drop-zone">
+            <div class="drop-zone-inner">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                <p>Drag &amp; drop a Markdown file here</p>
+                <p class="drop-zone-hint">or click to browse (.md, .txt, .markdown)</p>
+                <input type="file" id="file-input" accept=".md,.txt,.markdown" hidden>
+            </div>
+            <div class="file-selected" id="file-selected" hidden>
+                <span id="file-name"></span>
+                <button class="btn-clear" id="clear-file">&times;</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Paste Tab -->
+    <div class="tab-content" id="tab-paste">
+        <textarea id="text-input" placeholder="Paste your adventure module text here..." rows="14"></textarea>
+    </div>
+
+    <!-- Voice Settings -->
+    <details class="settings-panel">
+        <summary>Voice Settings</summary>
+        <div class="settings-grid">
+            <div class="setting">
+                <label for="voice-select">Voice</label>
+                <select id="voice-select">
+                    <option value="en-US-Studio-Q" selected>Studio Q (Male, Narrator)</option>
+                    <option value="en-US-Studio-O">Studio O (Female, Narrator)</option>
+                    <option value="en-US-Neural2-A">Neural2 A (Male)</option>
+                    <option value="en-US-Neural2-D">Neural2 D (Male)</option>
+                    <option value="en-US-Neural2-J">Neural2 J (Male)</option>
+                </select>
+            </div>
+            <div class="setting">
+                <label for="speed-slider">Speed: <span id="speed-value">0.95x</span></label>
+                <input type="range" id="speed-slider" min="0.5" max="2.0" step="0.05" value="0.95">
+            </div>
+            <div class="setting">
+                <label for="pitch-slider">Pitch: <span id="pitch-value">-2.0</span></label>
+                <input type="range" id="pitch-slider" min="-10.0" max="10.0" step="0.5" value="-2.0">
+            </div>
+        </div>
+    </details>
+
+    <!-- Generate Button -->
+    <button class="btn-generate" id="btn-generate">Generate Audio</button>
+
+    <!-- Error Display -->
+    <div class="error-banner" id="error-banner" hidden>
+        <span id="error-message"></span>
+        <button class="btn-clear" id="clear-error">&times;</button>
+    </div>
+
+    <!-- Progress Section -->
+    <div class="progress-section" id="progress-section" hidden>
+        <h3>Generating Audio...</h3>
+        <div class="progress-bar-track">
+            <div class="progress-bar-fill" id="progress-bar"></div>
+        </div>
+        <p class="progress-text">
+            <span id="progress-chunks">0 / 0</span> chunks
+            &mdash; <span id="progress-time">Estimating...</span>
+        </p>
+    </div>
+
+    <!-- Download Section -->
+    <div class="download-section" id="download-section" hidden>
+        <h3>Audio Ready!</h3>
+        <button class="btn-download" id="btn-download">Download WAV</button>
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% endblock %}
