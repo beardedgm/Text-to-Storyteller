@@ -43,8 +43,9 @@ class TTSClient:
         )
 
         if resp.status_code != 200:
-            error_msg = resp.json().get('error', {}).get('message', resp.text)
-            raise RuntimeError(f'Google TTS API error ({resp.status_code}): {error_msg}')
+            raw_error = resp.json().get('error', {}).get('message', resp.text)
+            logger.error(f'Google TTS API error ({resp.status_code}): {raw_error}')
+            raise RuntimeError(f'TTS service returned an error (status {resp.status_code})')
 
         audio_b64 = resp.json().get('audioContent', '')
         if not audio_b64:
@@ -68,9 +69,9 @@ class TTSClient:
                     wav_data = self.synthesize_chunk(chunk)
                     wav_segments.append(wav_data)
                 except Exception as retry_err:
-                    logger.error(f"Retry also failed: {retry_err}")
+                    logger.error(f"Retry also failed on chunk {i+1}/{total}: {retry_err}")
                     raise RuntimeError(
-                        f"TTS synthesis failed on chunk {i+1}: {retry_err}"
+                        f"Audio generation failed on chunk {i+1} of {total}. Please try again."
                     )
 
             if progress_callback:

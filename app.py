@@ -3,6 +3,7 @@ import uuid
 import threading
 import time
 import logging
+from collections import defaultdict
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -24,6 +25,56 @@ app.config.from_object(Config)
 
 # In-memory job tracking
 jobs = {}
+
+# --- Rate limiting & abuse prevention ---
+MAX_TEXT_LENGTH = 500_000          # 500 KB of pasted text (~100k words)
+MAX_CHUNKS_PER_JOB = 200          # Cap TTS API calls per job
+MAX_CONCURRENT_JOBS_PER_IP = 2    # Simultaneous jobs per IP
+RATE_LIMIT_WINDOW = 60            # seconds
+RATE_LIMIT_MAX_REQUESTS = 5       # max synthesize requests per window per IP
+
+rate_limit_lock = threading.Lock()
+ip_request_log = defaultdict(list)   # ip -> [timestamp, ...]
+ip_active_jobs = defaultdict(int)    # ip -> count of running jobs
+
+
+def get_client_ip():
+    """Get the real client IP, respecting X-Forwarded-For behind a proxy."""
+    forwarded = request.headers.get('X-Forwarded-For', '')
+    if forwarded:
+        return forwarded.split(',')[0].strip()
+    return request.remote_addr or '127.0.0.1'
+
+
+def check_rate_limit(ip):
+    """Return True if the request is allowed, False if rate-limited."""
+    now = time.time()
+    with rate_limit_lock:
+        # Prune old entries
+        ip_request_log[ip] = [
+            t for t in ip_request_log[ip]
+            if now - t < RATE_LIMIT_WINDOW
+        ]
+        if len(ip_request_log[ip]) >= RATE_LIMIT_MAX_REQUESTS:
+            return False
+        ip_request_log[ip].append(now)
+        return True
+
+
+def check_concurrent_limit(ip):
+    """Return True if the IP hasn't exceeded concurrent job limit."""
+    with rate_limit_lock:
+        return ip_active_jobs[ip] < MAX_CONCURRENT_JOBS_PER_IP
+
+
+def increment_active_jobs(ip):
+    with rate_limit_lock:
+        ip_active_jobs[ip] += 1
+
+
+def decrement_active_jobs(ip):
+    with rate_limit_lock:
+        ip_active_jobs[ip] = max(0, ip_active_jobs[ip] - 1)
 
 ALLOWED_EXTENSIONS = {'.md', '.txt', '.markdown'}
 
@@ -51,6 +102,7 @@ def validate_upload(file):
 
 def process_tts_job(job_id, ssml_chunks, voice_params):
     """Background worker that runs TTS synthesis and concatenation."""
+    client_ip = jobs[job_id].get('client_ip', '')
     try:
         tts = TTSClient(**voice_params)
         concatenator = WavConcatenator()
@@ -67,12 +119,14 @@ def process_tts_job(job_id, ssml_chunks, voice_params):
 
         jobs[job_id]['status'] = 'complete'
         jobs[job_id]['output_path'] = output_path
-        logger.info(f"Job {job_id} complete: {len(ssml_chunks)} chunks -> {output_path}")
+        logger.info(f"Job {job_id} complete: {len(ssml_chunks)} chunks")
 
     except Exception as e:
         jobs[job_id]['status'] = 'error'
-        jobs[job_id]['error'] = str(e)
+        jobs[job_id]['error'] = 'Audio generation failed. Please try again.'
         logger.exception(f"Job {job_id} failed: {e}")
+    finally:
+        decrement_active_jobs(client_ip)
 
 
 @app.route('/')
@@ -83,11 +137,23 @@ def index():
 @app.route('/api/synthesize', methods=['POST'])
 def synthesize():
     try:
+        client_ip = get_client_ip()
+
+        # Rate limit check
+        if not check_rate_limit(client_ip):
+            return jsonify({'error': 'Too many requests. Please wait a minute and try again.'}), 429
+
+        # Concurrent job limit
+        if not check_concurrent_limit(client_ip):
+            return jsonify({'error': 'You already have jobs running. Please wait for them to finish.'}), 429
+
         # Get text from file upload or textarea
         if 'file' in request.files and request.files['file'].filename:
             raw_text = validate_upload(request.files['file'])
         elif request.form.get('text'):
             raw_text = request.form['text']
+            if len(raw_text) > MAX_TEXT_LENGTH:
+                return jsonify({'error': f'Text too long. Maximum is {MAX_TEXT_LENGTH // 1000}K characters.'}), 400
         else:
             return jsonify({'error': 'No text or file provided'}), 400
 
@@ -119,9 +185,18 @@ def synthesize():
         if not chunks:
             return jsonify({'error': 'Text produced no usable chunks'}), 400
 
+        # Cap chunks to prevent API bill abuse
+        if len(chunks) > MAX_CHUNKS_PER_JOB:
+            return jsonify({
+                'error': f'Text is too long ({len(chunks)} chunks). Maximum is {MAX_CHUNKS_PER_JOB} chunks per job.'
+            }), 400
+
         # Build SSML for each chunk
         builder = SSMLBuilder()
         ssml_chunks = [builder.build(chunk) for chunk in chunks]
+
+        # Track concurrent jobs for this IP
+        increment_active_jobs(client_ip)
 
         # Create job
         job_id = str(uuid.uuid4())
@@ -132,6 +207,7 @@ def synthesize():
             'error': None,
             'output_path': None,
             'created_at': time.time(),
+            'client_ip': client_ip,
         }
 
         voice_params = {
@@ -221,4 +297,5 @@ cleanup_thread.start()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(debug=True, port=port)
+    debug = os.environ.get('FLASK_DEBUG', '0') == '1'
+    app.run(debug=debug, port=port)
