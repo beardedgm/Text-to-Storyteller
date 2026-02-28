@@ -42,15 +42,15 @@
     <details class="settings-panel">
         <summary>Voice Settings</summary>
         <div class="settings-grid">
-            <div class="setting">
-                <label for="voice-select">Voice</label>
+            <div class="setting setting-voice">
+                <label>Voice</label>
+                <div class="voice-category-filters" id="voice-category-filters">
+                    <button class="category-chip active" data-category="all">All</button>
+                </div>
                 <select id="voice-select">
-                    <option value="en-US-Studio-Q" selected>Studio Q (Male, Narrator)</option>
-                    <option value="en-US-Studio-O">Studio O (Female, Narrator)</option>
-                    <option value="en-US-Neural2-A">Neural2 A (Male)</option>
-                    <option value="en-US-Neural2-D">Neural2 D (Male)</option>
-                    <option value="en-US-Neural2-J">Neural2 J (Male)</option>
+                    <option value="">Loading voices...</option>
                 </select>
+                <span class="voice-count" id="voice-count"></span>
             </div>
             <div class="setting">
                 <label for="speed-slider">Speed: <span id="speed-value">0.95x</span></label>
@@ -84,10 +84,12 @@
         </p>
     </div>
 
-    <!-- Download Section -->
-    <div class="download-section" id="download-section" hidden>
+    <!-- Audio Player & Download Section -->
+    <div class="result-section" id="result-section" hidden>
         <h3>Audio Ready!</h3>
-        <button class="btn-download" id="btn-download">Download WAV</button>
+        <div class="audio-player">
+            <audio id="audio-player" controls preload="auto"></audio>
+        </div>
     </div>
 </main>
 {% endblock %}

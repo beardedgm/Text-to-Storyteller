@@ -1,8 +1,5 @@
 import struct
 import io
-import logging
-
-logger = logging.getLogger(__name__)
 
 
 class WavConcatenator:
@@ -49,12 +46,7 @@ class WavConcatenator:
 
         # Fast path: single segment — zero processing
         if len(wav_segments) == 1:
-            seg = wav_segments[0]
-            logger.info(
-                f"Single segment pass-through: {len(seg)} bytes, "
-                f"header={seg[:4]}"
-            )
-            return seg
+            return wav_segments[0]
 
         # ── Multi-segment concatenation ─────────────────────────────
         all_audio = []
@@ -90,10 +82,6 @@ class WavConcatenator:
             if header_bytes is None:
                 header_bytes = bytearray(seg[:audio_start])
                 data_size_offset = data_pos + 4
-                logger.info(
-                    f"WAV header from segment 0: {len(header_bytes)} bytes, "
-                    f"fmt starts at 12, data chunk at offset {data_pos}"
-                )
 
         total_audio_bytes = sum(len(a) for a in all_audio)
         if total_audio_bytes == 0:
@@ -105,12 +93,6 @@ class WavConcatenator:
         struct.pack_into('<I', header_bytes, 4, riff_size)
         # data chunk size
         struct.pack_into('<I', header_bytes, data_size_offset, total_audio_bytes)
-
-        logger.info(
-            f"Concatenated {len(all_audio)} segments: "
-            f"header={len(header_bytes)}B + audio={total_audio_bytes}B = "
-            f"{len(header_bytes) + total_audio_bytes}B total"
-        )
 
         out = io.BytesIO()
         out.write(header_bytes)

@@ -13,6 +13,7 @@ from flask import Flask, request, jsonify, render_template, send_file, session, 
 from werkzeug.security import check_password_hash
 
 from config import Config
+from voice_registry import VOICES, VOICE_CATEGORIES, DEFAULT_VOICE
 from services.markdown_processor import MarkdownProcessor
 from services.text_chunker import TextChunker
 from services.ssml_builder import SSMLBuilder
@@ -177,6 +178,17 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/api/voices')
+@login_required
+def get_voices():
+    """Return all available voices and categories for the voice selector."""
+    return jsonify({
+        'categories': VOICE_CATEGORIES,
+        'voices': VOICES,
+        'default': DEFAULT_VOICE,
+    })
+
+
 @app.route('/api/synthesize', methods=['POST'])
 @login_required
 def synthesize():
@@ -294,9 +306,10 @@ def status(job_id):
     })
 
 
-@app.route('/api/download/<job_id>')
+@app.route('/api/stream/<job_id>')
 @login_required
-def download(job_id):
+def stream(job_id):
+    """Serve WAV audio inline for browser playback via <audio> element."""
     job = jobs.get(job_id)
     if not job:
         return jsonify({'error': 'Job not found'}), 404
@@ -307,59 +320,9 @@ def download(job_id):
     if not job['output_path'] or not os.path.exists(job['output_path']):
         return jsonify({'error': 'Output file not found'}), 404
 
-    file_size = os.path.getsize(job['output_path'])
-    logger.info(f"Serving download for job {job_id}: {file_size} bytes")
-
     return send_file(
         job['output_path'],
         mimetype='audio/wav',
-        as_attachment=True,
-        download_name='storyteller-output.wav',
-    )
-
-
-@app.route('/api/test-wav')
-@login_required
-def test_wav():
-    """Serve a known-good 1-second WAV file (440 Hz sine wave).
-
-    If this file plays fine, the download pipeline is OK and the
-    problem is in the Google TTS audio data or concatenation.
-    If this file ALSO fails, the problem is in how we serve files.
-    """
-    import struct as st
-    import math
-
-    sample_rate = 24000
-    duration = 1.0
-    frequency = 440.0
-    num_samples = int(sample_rate * duration)
-
-    # Generate 16-bit mono sine wave
-    samples = bytearray()
-    for i in range(num_samples):
-        t = i / sample_rate
-        value = int(32767 * 0.5 * math.sin(2 * math.pi * frequency * t))
-        samples += st.pack('<h', value)
-
-    data_size = len(samples)
-    header = st.pack(
-        '<4sI4s4sIHHIIHH4sI',
-        b'RIFF', 36 + data_size, b'WAVE',
-        b'fmt ', 16, 1, 1, sample_rate,
-        sample_rate * 2, 2, 16,
-        b'data', data_size,
-    )
-
-    wav_bytes = header + bytes(samples)
-    logger.info(f"Test WAV: {len(wav_bytes)} bytes, {sample_rate}Hz, 1ch, 16-bit")
-
-    import io
-    return send_file(
-        io.BytesIO(wav_bytes),
-        mimetype='audio/wav',
-        as_attachment=True,
-        download_name='test-tone-440hz.wav',
     )
 
 
