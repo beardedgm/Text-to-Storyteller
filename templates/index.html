@@ -42,6 +42,19 @@
     <details class="settings-panel">
         <summary>Voice Settings</summary>
         <div class="settings-grid">
+            <!-- Presets -->
+            <div class="setting setting-voice">
+                <label>Preset</label>
+                <div class="preset-row">
+                    <select id="preset-select">
+                        <option value="">Custom settings</option>
+                    </select>
+                    <button class="btn-small" id="btn-save-preset" title="Save current settings as preset">Save</button>
+                    <button class="btn-small btn-danger" id="btn-delete-preset" title="Delete selected preset" hidden>Delete</button>
+                </div>
+            </div>
+
+            <!-- Voice -->
             <div class="setting setting-voice">
                 <label>Voice</label>
                 <div class="voice-category-filters" id="voice-category-filters">
@@ -62,6 +75,28 @@
             </div>
         </div>
     </details>
+
+    <!-- Generation Options -->
+    <div class="generation-options">
+        <div class="option-row">
+            <label for="audio-title">Audio Title</label>
+            <input type="text" id="audio-title" placeholder="Untitled" maxlength="200">
+        </div>
+        <div class="option-row">
+            <label class="checkbox-label">
+                <input type="checkbox" id="save-text-check">
+                Save text to library
+            </label>
+            <input type="text" id="save-text-title" placeholder="Title for saved text" maxlength="200" hidden>
+        </div>
+    </div>
+
+    <!-- Source Text Picker (populated via JS if user has saved texts) -->
+    <div class="source-text-picker" id="source-text-picker" hidden>
+        <select id="source-text-select">
+            <option value="">-- Load from My Texts --</option>
+        </select>
+    </div>
 
     <!-- Generate Button -->
     <button class="btn-generate" id="btn-generate">Generate Audio</button>
@@ -84,7 +119,7 @@
         </p>
     </div>
 
-    <!-- Audio Player & Download Section -->
+    <!-- Audio Player Section -->
     <div class="result-section" id="result-section" hidden>
         <h3>Audio Ready!</h3>
         <div class="audio-player">

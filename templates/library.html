@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block content %}
+<header>
+    <h1>My Audio</h1>
+    <p class="subtitle">Your generated audio library</p>
+</header>
+
+<main>
+    <div id="library-list" class="library-list">
+        <p class="empty-state" id="library-empty">Loading...</p>
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    const listEl = document.getElementById('library-list');
+    const emptyEl = document.getElementById('library-empty');
+
+    try {
+        const resp = await fetch('/api/library');
+        const data = await resp.json();
+
+        if (!data.audio_files || data.audio_files.length === 0) {
+            emptyEl.textContent = 'No audio files yet. Generate some audio to see it here!';
+            return;
+        }
+
+        emptyEl.remove();
+
+        // Load voice registry for display names
+        const voiceResp = await fetch('/api/voices');
+        const voiceData = await voiceResp.json();
+        const voiceMap = {};
+        voiceData.voices.forEach(v => { voiceMap[v.api_name] = v.display_name; });
+
+        data.audio_files.forEach(audio => {
+            const card = document.createElement('div');
+            card.className = 'library-card';
+            card.dataset.id = audio.id;
+
+            const voiceDisplay = voiceMap[audio.voice_name] || audio.voice_name;
+            const duration = audio.duration_seconds
+                ? formatDuration(audio.duration_seconds) : '--:--';
+            const size = formatSize(audio.file_size_bytes);
+            const date = new Date(audio.created_at).toLocaleDateString();
+
+            card.innerHTML = `
+                <div class="library-card-header">
+                    <h3 class="library-card-title" title="Click to rename">${esc(audio.title)}</h3>
+                    <span class="library-card-date">${date}</span>
+                </div>
+                <div class="library-card-meta">
+                    <span>${esc(voiceDisplay)} &middot; ${audio.speaking_rate}x &middot; pitch ${audio.pitch}</span>
+                    <span>${duration} &middot; ${size}</span>
+                </div>
+                <div class="library-card-player">
+                    <audio controls preload="none" src="/api/library/${audio.id}/stream"></audio>
+                </div>
+                <div class="library-card-actions">
+                    <a href="/api/library/${audio.id}/download" class="btn-small">Download</a>
+                    <button class="btn-small btn-rename" data-id="${audio.id}">Rename</button>
+                    <button class="btn-small btn-danger btn-delete" data-id="${audio.id}">Delete</button>
+                </div>
+            `;
+
+            listEl.appendChild(card);
+        });
+
+        // Rename handlers
+        listEl.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('btn-rename')) {
+                const id = e.target.dataset.id;
+                const card = listEl.querySelector(`[data-id="${id}"]`);
+                const titleEl = card.querySelector('.library-card-title');
+                const newName = prompt('New title:', titleEl.textContent);
+                if (newName && newName.trim()) {
+                    const resp = await fetch(`/api/library/${id}`, {
+                        method: 'PUT',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({title: newName.trim()}),
+                    });
+                    if (resp.ok) {
+                        titleEl.textContent = newName.trim();
+                    }
+                }
+            }
+        });
+
+        // Delete handlers
+        listEl.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('btn-delete')) {
+                if (!confirm('Delete this audio file? This cannot be undone.')) return;
+                const id = e.target.dataset.id;
+                const resp = await fetch(`/api/library/${id}`, {method: 'DELETE'});
+                if (resp.ok) {
+                    const card = listEl.querySelector(`[data-id="${id}"]`);
+                    card.remove();
+                    if (listEl.children.length === 0) {
+                        const p = document.createElement('p');
+                        p.className = 'empty-state';
+                        p.textContent = 'No audio files yet.';
+                        listEl.appendChild(p);
+                    }
+                }
+            }
+        });
+
+    } catch (err) {
+        emptyEl.textContent = 'Failed to load audio library.';
+        console.error(err);
+    }
+});
+
+function formatDuration(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return mins + ':' + String(secs).padStart(2, '0');
+}
+
+function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function esc(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+}
+</script>
+{% endblock %}
