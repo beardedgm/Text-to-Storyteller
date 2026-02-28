@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block content %}
+<header>
+    <h1>My Texts</h1>
+    <p class="subtitle">Saved source texts for re-generation</p>
+</header>
+
+<main>
+    <div id="texts-list" class="texts-list">
+        <p class="empty-state" id="texts-empty">Loading...</p>
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+    const listEl = document.getElementById('texts-list');
+    const emptyEl = document.getElementById('texts-empty');
+
+    try {
+        const resp = await fetch('/api/texts');
+        const data = await resp.json();
+
+        if (!data.texts || data.texts.length === 0) {
+            emptyEl.textContent = 'No saved texts yet. Save a text when generating audio to see it here!';
+            return;
+        }
+
+        emptyEl.remove();
+
+        data.texts.forEach(text => {
+            const card = document.createElement('div');
+            card.className = 'text-card';
+            card.dataset.id = text.id;
+
+            const charCount = text.char_count.toLocaleString();
+            const date = new Date(text.updated_at || text.created_at).toLocaleDateString();
+            const typeLabel = text.file_type === 'paste' ? 'Pasted' : text.file_type;
+
+            card.innerHTML = `
+                <div class="text-card-header">
+                    <h3 class="text-card-title">${esc(text.title)}</h3>
+                    <span class="text-card-date">${date}</span>
+                </div>
+                <div class="text-card-meta">
+                    <span class="text-badge">${esc(typeLabel)}</span>
+                    <span>${charCount} characters</span>
+                </div>
+                <div class="text-card-actions">
+                    <a href="/?load_text=${text.id}" class="btn-small btn-primary">Use for Generation</a>
+                    <button class="btn-small btn-rename" data-id="${text.id}">Rename</button>
+                    <button class="btn-small btn-danger btn-delete" data-id="${text.id}">Delete</button>
+                </div>
+            `;
+
+            listEl.appendChild(card);
+        });
+
+        // Rename handlers
+        listEl.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('btn-rename')) {
+                const id = e.target.dataset.id;
+                const card = listEl.querySelector(`[data-id="${id}"]`);
+                const titleEl = card.querySelector('.text-card-title');
+                const newName = prompt('New title:', titleEl.textContent);
+                if (newName && newName.trim()) {
+                    const resp = await fetch(`/api/texts/${id}`, {
+                        method: 'PUT',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({title: newName.trim()}),
+                    });
+                    if (resp.ok) {
+                        titleEl.textContent = newName.trim();
+                    }
+                }
+            }
+        });
+
+        // Delete handlers
+        listEl.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('btn-delete')) {
+                if (!confirm('Delete this saved text? This cannot be undone.')) return;
+                const id = e.target.dataset.id;
+                const resp = await fetch(`/api/texts/${id}`, {method: 'DELETE'});
+                if (resp.ok) {
+                    const card = listEl.querySelector(`[data-id="${id}"]`);
+                    card.remove();
+                    if (listEl.children.length === 0) {
+                        const p = document.createElement('p');
+                        p.className = 'empty-state';
+                        p.textContent = 'No saved texts yet.';
+                        listEl.appendChild(p);
+                    }
+                }
+            }
+        });
+
+    } catch (err) {
+        emptyEl.textContent = 'Failed to load texts.';
+        console.error(err);
+    }
+});
+
+function esc(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+}
+</script>
+{% endblock %}

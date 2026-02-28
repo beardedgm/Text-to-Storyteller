@@ -13,6 +13,11 @@ class StorytellerApp {
         this.activeCategory = 'all';
         this.defaultVoice = '';
 
+        // Presets & source texts
+        this.presets = [];
+        this.sourceTexts = [];
+        this.loadedSourceTextId = null;
+
         this.els = {
             tabs: document.querySelectorAll('.tab'),
             tabUpload: document.getElementById('tab-upload'),
@@ -40,10 +45,22 @@ class StorytellerApp {
             progressTime: document.getElementById('progress-time'),
             resultSection: document.getElementById('result-section'),
             audioPlayer: document.getElementById('audio-player'),
+            // New elements
+            presetSelect: document.getElementById('preset-select'),
+            btnSavePreset: document.getElementById('btn-save-preset'),
+            btnDeletePreset: document.getElementById('btn-delete-preset'),
+            audioTitle: document.getElementById('audio-title'),
+            saveTextCheck: document.getElementById('save-text-check'),
+            saveTextTitle: document.getElementById('save-text-title'),
+            sourceTextPicker: document.getElementById('source-text-picker'),
+            sourceTextSelect: document.getElementById('source-text-select'),
         };
 
         this.setupEventListeners();
         this.loadVoices();
+        this.loadPresets();
+        this.loadSourceTexts();
+        this.checkUrlParams();
     }
 
     setupEventListeners() {
@@ -75,9 +92,17 @@ class StorytellerApp {
         // Sliders
         this.els.speedSlider.addEventListener('input', () => {
             this.els.speedValue.textContent = this.els.speedSlider.value + 'x';
+            this.els.presetSelect.value = '';
+            this.els.btnDeletePreset.hidden = true;
         });
         this.els.pitchSlider.addEventListener('input', () => {
             this.els.pitchValue.textContent = this.els.pitchSlider.value;
+            this.els.presetSelect.value = '';
+            this.els.btnDeletePreset.hidden = true;
+        });
+        this.els.voiceSelect.addEventListener('change', () => {
+            this.els.presetSelect.value = '';
+            this.els.btnDeletePreset.hidden = true;
         });
 
         // Generate
@@ -85,6 +110,19 @@ class StorytellerApp {
 
         // Clear error
         this.els.clearError.addEventListener('click', () => this.hideError());
+
+        // Presets
+        this.els.presetSelect.addEventListener('change', () => this.applyPreset());
+        this.els.btnSavePreset.addEventListener('click', () => this.savePreset());
+        this.els.btnDeletePreset.addEventListener('click', () => this.deletePreset());
+
+        // Save text checkbox
+        this.els.saveTextCheck.addEventListener('change', () => {
+            this.els.saveTextTitle.hidden = !this.els.saveTextCheck.checked;
+        });
+
+        // Source text picker
+        this.els.sourceTextSelect.addEventListener('change', () => this.loadSourceText());
     }
 
     // ── Voice loading & filtering ──────────────────────────────
@@ -106,7 +144,6 @@ class StorytellerApp {
     renderCategoryChips() {
         const container = this.els.voiceCategoryFilters;
 
-        // Add a chip for each category (the "All" chip is already in the HTML)
         this.categories.forEach(cat => {
             const btn = document.createElement('button');
             btn.className = 'category-chip';
@@ -116,7 +153,6 @@ class StorytellerApp {
             container.appendChild(btn);
         });
 
-        // Attach click handlers to all chips
         container.querySelectorAll('.category-chip').forEach(chip => {
             chip.addEventListener('click', () => {
                 container.querySelectorAll('.category-chip').forEach(c => c.classList.remove('active'));
@@ -152,7 +188,6 @@ class StorytellerApp {
             select.appendChild(opt);
         });
 
-        // Preserve previous selection if still visible, else use default
         const previousStillVisible = filtered.some(v => v.api_name === previousValue);
         if (previousStillVisible) {
             select.value = previousValue;
@@ -161,8 +196,183 @@ class StorytellerApp {
             select.value = defaultInList ? this.defaultVoice : (filtered[0]?.api_name || '');
         }
 
-        // Update count
         this.els.voiceCount.textContent = filtered.length + ' voice' + (filtered.length !== 1 ? 's' : '');
+    }
+
+    // ── Presets ────────────────────────────────────────────────
+
+    async loadPresets() {
+        try {
+            const resp = await fetch('/api/presets');
+            const data = await resp.json();
+            this.presets = data.presets || [];
+            this.renderPresetOptions();
+        } catch (err) {
+            console.error('Failed to load presets:', err);
+        }
+    }
+
+    renderPresetOptions() {
+        const select = this.els.presetSelect;
+        select.innerHTML = '<option value="">Custom settings</option>';
+        this.presets.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = p.name;
+            select.appendChild(opt);
+        });
+    }
+
+    applyPreset() {
+        const presetId = this.els.presetSelect.value;
+        if (!presetId) {
+            this.els.btnDeletePreset.hidden = true;
+            return;
+        }
+
+        const preset = this.presets.find(p => p.id === presetId);
+        if (!preset) return;
+
+        // Apply voice
+        this.els.voiceSelect.value = preset.voice_name;
+        if (!this.els.voiceSelect.value) {
+            // Voice might be filtered out — switch to "All" category
+            this.activeCategory = 'all';
+            this.els.voiceCategoryFilters.querySelectorAll('.category-chip')
+                .forEach(c => c.classList.toggle('active', c.dataset.category === 'all'));
+            this.renderVoiceOptions('all');
+            this.els.voiceSelect.value = preset.voice_name;
+        }
+
+        // Apply speed & pitch
+        this.els.speedSlider.value = preset.speaking_rate;
+        this.els.speedValue.textContent = preset.speaking_rate + 'x';
+        this.els.pitchSlider.value = preset.pitch;
+        this.els.pitchValue.textContent = preset.pitch;
+
+        this.els.btnDeletePreset.hidden = false;
+    }
+
+    async savePreset() {
+        const name = prompt('Preset name:');
+        if (!name || !name.trim()) return;
+
+        try {
+            const resp = await fetch('/api/presets', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    name: name.trim(),
+                    voice_name: this.els.voiceSelect.value,
+                    speaking_rate: parseFloat(this.els.speedSlider.value),
+                    pitch: parseFloat(this.els.pitchSlider.value),
+                }),
+            });
+            const data = await resp.json();
+
+            if (data.error) {
+                this.showError(data.error);
+                return;
+            }
+
+            this.presets.push(data.preset);
+            this.renderPresetOptions();
+            this.els.presetSelect.value = data.preset.id;
+            this.els.btnDeletePreset.hidden = false;
+        } catch (err) {
+            this.showError('Failed to save preset');
+        }
+    }
+
+    async deletePreset() {
+        const presetId = this.els.presetSelect.value;
+        if (!presetId) return;
+        if (!confirm('Delete this preset?')) return;
+
+        try {
+            await fetch('/api/presets/' + presetId, {method: 'DELETE'});
+            this.presets = this.presets.filter(p => p.id !== presetId);
+            this.renderPresetOptions();
+            this.els.presetSelect.value = '';
+            this.els.btnDeletePreset.hidden = true;
+        } catch (err) {
+            this.showError('Failed to delete preset');
+        }
+    }
+
+    // ── Source Texts ───────────────────────────────────────────
+
+    async loadSourceTexts() {
+        try {
+            const resp = await fetch('/api/texts');
+            const data = await resp.json();
+            this.sourceTexts = data.texts || [];
+            this.renderSourceTextOptions();
+        } catch (err) {
+            console.error('Failed to load source texts:', err);
+        }
+    }
+
+    renderSourceTextOptions() {
+        const select = this.els.sourceTextSelect;
+        select.innerHTML = '<option value="">-- Load from My Texts --</option>';
+
+        if (this.sourceTexts.length === 0) {
+            this.els.sourceTextPicker.hidden = true;
+            return;
+        }
+
+        this.els.sourceTextPicker.hidden = false;
+        this.sourceTexts.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.id;
+            opt.textContent = t.title + ' (' + t.char_count.toLocaleString() + ' chars)';
+            select.appendChild(opt);
+        });
+    }
+
+    async loadSourceText() {
+        const textId = this.els.sourceTextSelect.value;
+        if (!textId) {
+            this.loadedSourceTextId = null;
+            return;
+        }
+
+        try {
+            const resp = await fetch('/api/texts/' + textId);
+            const data = await resp.json();
+            if (data.text) {
+                this.els.textInput.value = data.text.content;
+                this.loadedSourceTextId = textId;
+                // Switch to paste tab
+                this.switchTab('paste');
+                // Pre-fill audio title from text title
+                if (!this.els.audioTitle.value) {
+                    this.els.audioTitle.value = data.text.title;
+                }
+            }
+        } catch (err) {
+            this.showError('Failed to load text');
+        }
+    }
+
+    checkUrlParams() {
+        const params = new URLSearchParams(window.location.search);
+        const loadTextId = params.get('load_text');
+        if (loadTextId) {
+            // Will be loaded once source texts are fetched
+            this.pendingLoadTextId = loadTextId;
+            const origRender = this.renderSourceTextOptions.bind(this);
+            this.renderSourceTextOptions = () => {
+                origRender();
+                if (this.pendingLoadTextId) {
+                    this.els.sourceTextSelect.value = this.pendingLoadTextId;
+                    this.loadSourceText();
+                    this.pendingLoadTextId = null;
+                    this.renderSourceTextOptions = origRender;
+                }
+            };
+        }
     }
 
     // ── Core app logic ─────────────────────────────────────────
@@ -183,6 +393,10 @@ class StorytellerApp {
         this.selectedFile = file;
         this.els.fileName.textContent = file.name + ' (' + this.formatSize(file.size) + ')';
         this.els.fileSelected.hidden = false;
+        // Use filename (without extension) as default audio title
+        if (!this.els.audioTitle.value) {
+            this.els.audioTitle.value = file.name.replace(/\.[^.]+$/, '');
+        }
     }
 
     clearFile() {
@@ -234,6 +448,21 @@ class StorytellerApp {
         formData.append('voice_name', this.els.voiceSelect.value);
         formData.append('speaking_rate', this.els.speedSlider.value);
         formData.append('pitch', this.els.pitchSlider.value);
+
+        // Audio title
+        const audioTitle = this.els.audioTitle.value.trim() || 'Untitled';
+        formData.append('audio_title', audioTitle);
+
+        // Save text option
+        if (this.els.saveTextCheck.checked) {
+            formData.append('save_text', '1');
+            formData.append('text_title', this.els.saveTextTitle.value.trim() || audioTitle);
+        }
+
+        // Link to existing source text
+        if (this.loadedSourceTextId) {
+            formData.append('source_text_id', this.loadedSourceTextId);
+        }
 
         this.els.btnGenerate.disabled = true;
         this.els.btnGenerate.textContent = 'Starting...';
@@ -302,6 +531,13 @@ class StorytellerApp {
                 this.els.audioPlayer.src = '/api/stream/' + this.jobId;
                 this.els.audioPlayer.load();
                 this.resetButton();
+
+                // Refresh source texts list in case text was saved
+                if (this.els.saveTextCheck.checked) {
+                    this.loadSourceTexts();
+                    this.els.saveTextCheck.checked = false;
+                    this.els.saveTextTitle.hidden = true;
+                }
             }
 
         } catch (err) {

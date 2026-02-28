@@ -7,12 +7,19 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    {% if session.get('logged_in') %}
+    {% if session.get('user_id') %}
     <nav class="top-nav">
-        <span class="nav-user">{{ config.AUTH_USERNAME }}</span>
-        <form action="{{ url_for('logout') }}" method="POST" class="logout-form">
-            <button type="submit" class="btn-logout">Logout</button>
-        </form>
+        <div class="nav-links">
+            <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">Generate</a>
+            <a href="{{ url_for('library_page') }}" class="nav-link {% if request.endpoint == 'library_page' %}active{% endif %}">My Audio</a>
+            <a href="{{ url_for('texts_page') }}" class="nav-link {% if request.endpoint == 'texts_page' %}active{% endif %}">My Texts</a>
+        </div>
+        <div class="nav-right">
+            <span class="nav-user">{{ g.current_user.username if g.current_user else '' }}</span>
+            <form action="{{ url_for('logout') }}" method="POST" class="logout-form">
+                <button type="submit" class="btn-logout">Logout</button>
+            </form>
+        </div>
     </nav>
     {% endif %}
     <div class="container">

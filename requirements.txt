@@ -3,3 +3,4 @@ gunicorn==23.0.0
 requests==2.32.3
 mistune==3.1.2
 python-dotenv==1.1.0
+pymongo[srv]==4.12.1
