@@ -7,6 +7,12 @@ class StorytellerApp {
         this.selectedFile = null;
         this.activeTab = 'upload';
 
+        // Voice data (populated by loadVoices)
+        this.voiceData = [];
+        this.categories = [];
+        this.activeCategory = 'all';
+        this.defaultVoice = '';
+
         this.els = {
             tabs: document.querySelectorAll('.tab'),
             tabUpload: document.getElementById('tab-upload'),
@@ -18,6 +24,8 @@ class StorytellerApp {
             clearFile: document.getElementById('clear-file'),
             textInput: document.getElementById('text-input'),
             voiceSelect: document.getElementById('voice-select'),
+            voiceCategoryFilters: document.getElementById('voice-category-filters'),
+            voiceCount: document.getElementById('voice-count'),
             speedSlider: document.getElementById('speed-slider'),
             speedValue: document.getElementById('speed-value'),
             pitchSlider: document.getElementById('pitch-slider'),
@@ -30,11 +38,12 @@ class StorytellerApp {
             progressBar: document.getElementById('progress-bar'),
             progressChunks: document.getElementById('progress-chunks'),
             progressTime: document.getElementById('progress-time'),
-            downloadSection: document.getElementById('download-section'),
-            btnDownload: document.getElementById('btn-download'),
+            resultSection: document.getElementById('result-section'),
+            audioPlayer: document.getElementById('audio-player'),
         };
 
         this.setupEventListeners();
+        this.loadVoices();
     }
 
     setupEventListeners() {
@@ -74,14 +83,89 @@ class StorytellerApp {
         // Generate
         this.els.btnGenerate.addEventListener('click', () => this.submit());
 
-        // Download
-        this.els.btnDownload.addEventListener('click', () => {
-            window.location.href = '/api/download/' + this.jobId;
-        });
-
         // Clear error
         this.els.clearError.addEventListener('click', () => this.hideError());
     }
+
+    // ── Voice loading & filtering ──────────────────────────────
+
+    async loadVoices() {
+        try {
+            const resp = await fetch('/api/voices');
+            const data = await resp.json();
+            this.voiceData = data.voices;
+            this.categories = data.categories;
+            this.defaultVoice = data.default;
+            this.renderCategoryChips();
+            this.renderVoiceOptions('all');
+        } catch (err) {
+            console.error('Failed to load voices:', err);
+        }
+    }
+
+    renderCategoryChips() {
+        const container = this.els.voiceCategoryFilters;
+
+        // Add a chip for each category (the "All" chip is already in the HTML)
+        this.categories.forEach(cat => {
+            const btn = document.createElement('button');
+            btn.className = 'category-chip';
+            btn.dataset.category = cat.id;
+            btn.textContent = cat.label;
+            btn.title = cat.description;
+            container.appendChild(btn);
+        });
+
+        // Attach click handlers to all chips
+        container.querySelectorAll('.category-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                container.querySelectorAll('.category-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                this.activeCategory = chip.dataset.category;
+                this.renderVoiceOptions(this.activeCategory);
+            });
+        });
+    }
+
+    renderVoiceOptions(category) {
+        const select = this.els.voiceSelect;
+        const previousValue = select.value;
+        select.innerHTML = '';
+
+        const filtered = category === 'all'
+            ? this.voiceData
+            : this.voiceData.filter(v => v.category === category);
+
+        const showCategory = category === 'all';
+
+        filtered.forEach(voice => {
+            const opt = document.createElement('option');
+            opt.value = voice.api_name;
+            const genderLabel = voice.gender === 'M' ? 'M' : 'F';
+            if (showCategory) {
+                const catDef = this.categories.find(c => c.id === voice.category);
+                const catLabel = catDef ? catDef.label : '';
+                opt.textContent = voice.display_name + ' (' + genderLabel + ') \u2014 ' + catLabel;
+            } else {
+                opt.textContent = voice.display_name + ' (' + genderLabel + ')';
+            }
+            select.appendChild(opt);
+        });
+
+        // Preserve previous selection if still visible, else use default
+        const previousStillVisible = filtered.some(v => v.api_name === previousValue);
+        if (previousStillVisible) {
+            select.value = previousValue;
+        } else {
+            const defaultInList = filtered.some(v => v.api_name === this.defaultVoice);
+            select.value = defaultInList ? this.defaultVoice : (filtered[0]?.api_name || '');
+        }
+
+        // Update count
+        this.els.voiceCount.textContent = filtered.length + ' voice' + (filtered.length !== 1 ? 's' : '');
+    }
+
+    // ── Core app logic ─────────────────────────────────────────
 
     switchTab(tab) {
         this.activeTab = tab;
@@ -124,8 +208,11 @@ class StorytellerApp {
 
     async submit() {
         this.hideError();
-        this.els.downloadSection.hidden = true;
+        this.els.resultSection.hidden = true;
         this.els.progressSection.hidden = true;
+        this.els.audioPlayer.pause();
+        this.els.audioPlayer.removeAttribute('src');
+        this.els.audioPlayer.load();
 
         const formData = new FormData();
 
@@ -211,7 +298,9 @@ class StorytellerApp {
             if (data.status === 'complete') {
                 clearInterval(this.pollInterval);
                 this.els.progressSection.hidden = true;
-                this.els.downloadSection.hidden = false;
+                this.els.resultSection.hidden = false;
+                this.els.audioPlayer.src = '/api/stream/' + this.jobId;
+                this.els.audioPlayer.load();
                 this.resetButton();
             }
 

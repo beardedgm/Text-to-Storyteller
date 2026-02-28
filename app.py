@@ -13,6 +13,7 @@ from flask import Flask, request, jsonify, render_template, send_file, session, 
 from werkzeug.security import check_password_hash
 
 from config import Config
+from voice_registry import VOICES, VOICE_CATEGORIES, DEFAULT_VOICE
 from services.markdown_processor import MarkdownProcessor
 from services.text_chunker import TextChunker
 from services.ssml_builder import SSMLBuilder
@@ -177,6 +178,17 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/api/voices')
+@login_required
+def get_voices():
+    """Return all available voices and categories for the voice selector."""
+    return jsonify({
+        'categories': VOICE_CATEGORIES,
+        'voices': VOICES,
+        'default': DEFAULT_VOICE,
+    })
+
+
 @app.route('/api/synthesize', methods=['POST'])
 @login_required
 def synthesize():
@@ -294,9 +306,10 @@ def status(job_id):
     })
 
 
-@app.route('/api/download/<job_id>')
+@app.route('/api/stream/<job_id>')
 @login_required
-def download(job_id):
+def stream(job_id):
+    """Serve WAV audio inline for browser playback via <audio> element."""
     job = jobs.get(job_id)
     if not job:
         return jsonify({'error': 'Job not found'}), 404
@@ -310,8 +323,6 @@ def download(job_id):
     return send_file(
         job['output_path'],
         mimetype='audio/wav',
-        as_attachment=True,
-        download_name='storyteller-output.wav',
     )
 
 

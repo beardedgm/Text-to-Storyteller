@@ -212,6 +212,48 @@ textarea:focus {
     width: 100%;
 }
 
+.setting-voice {
+    grid-column: 1 / -1;
+}
+
+/* === Voice Category Filters === */
+.voice-category-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.6rem;
+}
+
+.category-chip {
+    padding: 0.3rem 0.7rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+    white-space: nowrap;
+}
+
+.category-chip:hover {
+    border-color: var(--accent);
+    color: var(--text-primary);
+}
+
+.category-chip.active {
+    background: var(--accent);
+    color: var(--bg-primary);
+    border-color: var(--accent);
+}
+
+.voice-count {
+    display: block;
+    margin-top: 0.3rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
 select {
     padding: 0.5rem;
     background: var(--bg-primary);
@@ -274,23 +316,6 @@ input[type="range"]::-moz-range-thumb {
     cursor: not-allowed;
 }
 
-.btn-download {
-    display: inline-block;
-    padding: 0.8rem 2rem;
-    background: var(--success);
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    font-size: 1.05rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.btn-download:hover {
-    background: #27ae60;
-}
-
 .btn-clear {
     background: none;
     border: none;
@@ -351,15 +376,25 @@ input[type="range"]::-moz-range-thumb {
     font-size: 0.9rem;
 }
 
-/* === Download === */
-.download-section {
+/* === Result Section (Player + Download) === */
+.result-section {
     margin-top: 1.5rem;
     text-align: center;
 }
 
-.download-section h3 {
+.result-section h3 {
     margin-bottom: 1rem;
     color: var(--success);
+}
+
+.audio-player {
+    margin-bottom: 1rem;
+}
+
+.audio-player audio {
+    width: 100%;
+    border-radius: 8px;
+    outline: none;
 }
 
 /* === Top Navigation (Logout) === */
