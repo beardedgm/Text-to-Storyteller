@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text to Storyteller — Transform Text into Narrated Audio</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="landing-body">
+    <!-- Hero -->
+    <section class="landing-hero">
+        <div class="landing-hero-inner">
+            <h1 class="landing-title">Text to Storyteller</h1>
+            <p class="landing-tagline">Transform your adventure modules into rich, narrated audio — powered by 69 premium AI voices.</p>
+            <div class="landing-cta-group">
+                <a href="{{ url_for('register') }}" class="landing-btn landing-btn-primary">Get Started Free</a>
+                <a href="{{ url_for('login') }}" class="landing-btn landing-btn-secondary">Sign In</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="landing-features">
+        <div class="landing-container">
+            <h2 class="landing-section-title">Everything You Need</h2>
+            <div class="landing-feature-grid">
+                <div class="landing-feature-card">
+                    <div class="landing-feature-icon">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                            <line x1="12" y1="19" x2="12" y2="23"/>
+                            <line x1="8" y1="23" x2="16" y2="23"/>
+                        </svg>
+                    </div>
+                    <h3>69 Premium Voices</h3>
+                    <p>Choose from Studio, Neural2, Wavenet, Polyglot, and News voices — each with unique character and tone.</p>
+                </div>
+                <div class="landing-feature-card">
+                    <div class="landing-feature-icon">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                            <polyline points="10 9 9 9 8 9"/>
+                        </svg>
+                    </div>
+                    <h3>Smart Text Processing</h3>
+                    <p>Upload files or paste text directly. Long documents are automatically chunked and stitched into seamless audio.</p>
+                </div>
+                <div class="landing-feature-card">
+                    <div class="landing-feature-icon">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                    </div>
+                    <h3>Personal Audio Library</h3>
+                    <p>Every generation is saved to your library. Stream, download, and manage your narrated audio anytime.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="landing-steps">
+        <div class="landing-container">
+            <h2 class="landing-section-title">How It Works</h2>
+            <div class="landing-steps-grid">
+                <div class="landing-step">
+                    <div class="landing-step-number">1</div>
+                    <h3>Upload or Paste Your Text</h3>
+                    <p>Drop a .txt or .md file, or paste your content directly into the editor.</p>
+                </div>
+                <div class="landing-step">
+                    <div class="landing-step-number">2</div>
+                    <h3>Choose Your Narrator</h3>
+                    <p>Browse voices by category, preview them, and fine-tune speed and pitch to your liking.</p>
+                </div>
+                <div class="landing-step">
+                    <div class="landing-step-number">3</div>
+                    <h3>Download Your Audio</h3>
+                    <p>Hit generate and get a studio-quality WAV file — ready to play or share.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="landing-final-cta">
+        <div class="landing-container">
+            <h2>Ready to Bring Your Stories to Life?</h2>
+            <p>Create your free account and start generating narrated audio in minutes.</p>
+            <a href="{{ url_for('register') }}" class="landing-btn landing-btn-primary">Create Your Free Account</a>
+        </div>
+    </section>
+
+    <footer>
+        <p>Text to Storyteller &mdash; Powered by Google Cloud Text-to-Speech</p>
+    </footer>
+</body>
+</html>

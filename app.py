@@ -93,7 +93,7 @@ def login_required(f):
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if session.get('user_id'):
-        return redirect(url_for('index'))
+        return redirect(url_for('app_page'))
 
     error = None
     if request.method == 'POST':
@@ -112,7 +112,7 @@ def login():
             session['user_id'] = str(user['_id'])
             session.permanent = True
             logger.info(f"Login successful: '{username}' from {get_client_ip()}")
-            return redirect(url_for('index'))
+            return redirect(url_for('app_page'))
         else:
             logger.warning(f"Failed login attempt for '{username}' from {get_client_ip()}")
             error = 'Invalid username or password'
@@ -123,7 +123,7 @@ def login():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if session.get('user_id'):
-        return redirect(url_for('index'))
+        return redirect(url_for('app_page'))
 
     if not app.config.get('REGISTRATION_ENABLED', True):
         return render_template('login.html', error='Registration is currently disabled')
@@ -157,7 +157,7 @@ def register():
                 session['user_id'] = str(result.inserted_id)
                 session.permanent = True
                 logger.info(f"New user registered: '{username}' from {get_client_ip()}")
-                return redirect(url_for('index'))
+                return redirect(url_for('app_page'))
 
     return render_template('register.html', error=error)
 
@@ -346,8 +346,15 @@ def process_tts_job(job_id, ssml_chunks, voice_params):
 # ── Page Routes ─────────────────────────────────────────────────
 
 @app.route('/')
+def landing():
+    if session.get('user_id'):
+        return redirect(url_for('app_page'))
+    return render_template('landing.html')
+
+
+@app.route('/app')
 @login_required
-def index():
+def app_page():
     return render_template('index.html')
 
 

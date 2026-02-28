@@ -755,6 +755,204 @@ input[type="range"]::-moz-range-thumb {
     font-size: 1rem;
 }
 
+/* === Landing Page === */
+.landing-body {
+    background: var(--bg-primary);
+}
+
+.landing-hero {
+    min-height: 60vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 4rem 1.5rem 3rem;
+    background:
+        radial-gradient(ellipse at 50% 0%, rgba(15, 52, 96, 0.6) 0%, transparent 70%),
+        var(--bg-primary);
+}
+
+.landing-hero-inner {
+    max-width: 640px;
+}
+
+.landing-title {
+    font-size: 3rem;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: 0.01em;
+    line-height: 1.15;
+    margin-bottom: 1rem;
+}
+
+.landing-tagline {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 2rem;
+}
+
+.landing-cta-group {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.landing-btn {
+    display: inline-block;
+    padding: 0.85rem 2rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.15s;
+    cursor: pointer;
+}
+
+.landing-btn:hover {
+    transform: translateY(-1px);
+}
+
+.landing-btn-primary {
+    background: var(--accent);
+    color: var(--bg-primary);
+}
+
+.landing-btn-primary:hover {
+    background: var(--accent-hover);
+}
+
+.landing-btn-secondary {
+    background: transparent;
+    color: var(--accent);
+    border: 2px solid var(--accent);
+}
+
+.landing-btn-secondary:hover {
+    background: rgba(212, 165, 116, 0.1);
+}
+
+.landing-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
+.landing-section-title {
+    text-align: center;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 2.5rem;
+}
+
+/* Features */
+.landing-features {
+    padding: 4rem 0;
+    background: var(--bg-secondary);
+}
+
+.landing-feature-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+}
+
+.landing-feature-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem 1.5rem;
+    text-align: center;
+    transition: border-color 0.2s, transform 0.2s;
+}
+
+.landing-feature-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
+
+.landing-feature-icon {
+    color: var(--accent);
+    margin-bottom: 1rem;
+}
+
+.landing-feature-card h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.6rem;
+}
+
+.landing-feature-card p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.55;
+}
+
+/* Steps */
+.landing-steps {
+    padding: 4rem 0;
+}
+
+.landing-steps-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+}
+
+.landing-step {
+    text-align: center;
+}
+
+.landing-step-number {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 1rem;
+    background: var(--accent);
+    color: var(--bg-primary);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    font-weight: 700;
+}
+
+.landing-step h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.landing-step p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.55;
+}
+
+/* Final CTA */
+.landing-final-cta {
+    padding: 4rem 0;
+    background: var(--bg-secondary);
+    text-align: center;
+}
+
+.landing-final-cta h2 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+}
+
+.landing-final-cta p {
+    color: var(--text-secondary);
+    font-size: 1.05rem;
+    margin-bottom: 2rem;
+}
+
 /* === Footer === */
 footer {
     text-align: center;
@@ -802,5 +1000,33 @@ footer {
     .library-card-actions,
     .text-card-actions {
         flex-wrap: wrap;
+    }
+
+    /* Landing page responsive */
+    .landing-title {
+        font-size: 2rem;
+    }
+
+    .landing-tagline {
+        font-size: 1rem;
+    }
+
+    .landing-hero {
+        min-height: auto;
+        padding: 3rem 1rem 2rem;
+    }
+
+    .landing-feature-grid,
+    .landing-steps-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .landing-section-title {
+        font-size: 1.4rem;
+    }
+
+    .landing-final-cta h2 {
+        font-size: 1.4rem;
     }
 }
