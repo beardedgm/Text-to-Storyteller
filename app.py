@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from flask import Flask, request, jsonify, render_template, send_file, session, redirect, url_for, g
+from werkzeug.middleware.proxy_fix import ProxyFix
 from werkzeug.security import check_password_hash, generate_password_hash
 from bson import ObjectId
 
@@ -30,12 +31,40 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.config.from_object(Config)
 
+# Trust one level of proxy headers (Render, nginx, etc.)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
+# Regex for validating UUID-based WAV filenames (path traversal prevention)
+UUID_WAV_RE = re.compile(
+    r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.wav$'
+)
+
 # Initialize MongoDB
 mongo_db = init_db(app.config['MONGO_URI'], app.config['MONGO_DB_NAME'])
 
 # Ensure data directories exist
 os.makedirs(app.config['DATA_DIR'], exist_ok=True)
 os.makedirs(app.config['AUDIO_DIR'], exist_ok=True)
+
+
+# ── Security Headers ────────────────────────────────────────────
+
+@app.after_request
+def set_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'DENY'
+    response.headers['X-XSS-Protection'] = '0'
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "script-src 'self'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "media-src 'self' blob:; "
+        "img-src 'self' data:; "
+        "font-src 'self'"
+    )
+    return response
 
 
 # ── Authentication ──────────────────────────────────────────────
@@ -72,11 +101,20 @@ def login():
         password = request.form.get('password', '')
 
         user = mongo_db.users.find_one({'username': username})
-        if user and check_password_hash(user['password_hash'], password):
+        if user:
+            valid = check_password_hash(user['password_hash'], password)
+        else:
+            # Constant-time: always hash to prevent timing-based username enumeration
+            check_password_hash(generate_password_hash('dummy'), password)
+            valid = False
+
+        if valid:
             session['user_id'] = str(user['_id'])
             session.permanent = True
+            logger.info(f"Login successful: '{username}' from {get_client_ip()}")
             return redirect(url_for('index'))
         else:
+            logger.warning(f"Failed login attempt for '{username}' from {get_client_ip()}")
             error = 'Invalid username or password'
 
     return render_template('login.html', error=error)
@@ -118,6 +156,7 @@ def register():
                 })
                 session['user_id'] = str(result.inserted_id)
                 session.permanent = True
+                logger.info(f"New user registered: '{username}' from {get_client_ip()}")
                 return redirect(url_for('index'))
 
     return render_template('register.html', error=error)
@@ -169,9 +208,8 @@ ip_active_jobs = defaultdict(int)
 
 
 def get_client_ip():
-    forwarded = request.headers.get('X-Forwarded-For', '')
-    if forwarded:
-        return forwarded.split(',')[0].strip()
+    """Return client IP. ProxyFix middleware ensures request.remote_addr
+    is the real client IP when behind a trusted reverse proxy."""
     return request.remote_addr or '127.0.0.1'
 
 
@@ -583,6 +621,9 @@ def stream_library_audio(audio_id):
     if not audio:
         return jsonify({'error': 'Audio not found'}), 404
 
+    if not UUID_WAV_RE.match(audio.get('filename', '')):
+        return jsonify({'error': 'Invalid filename'}), 400
+
     file_path = os.path.join(
         app.config['AUDIO_DIR'], str(g.current_user_id), audio['filename']
     )
@@ -605,6 +646,9 @@ def download_library_audio(audio_id):
     })
     if not audio:
         return jsonify({'error': 'Audio not found'}), 404
+
+    if not UUID_WAV_RE.match(audio.get('filename', '')):
+        return jsonify({'error': 'Invalid filename'}), 400
 
     file_path = os.path.join(
         app.config['AUDIO_DIR'], str(g.current_user_id), audio['filename']
@@ -716,10 +760,16 @@ def synthesize():
         if voice_name not in Config.ALLOWED_VOICES:
             voice_name = Config.TTS_VOICE_NAME
 
-        speaking_rate = float(request.form.get('speaking_rate', Config.TTS_SPEAKING_RATE))
+        try:
+            speaking_rate = float(request.form.get('speaking_rate', Config.TTS_SPEAKING_RATE))
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Invalid speaking_rate value'}), 400
         speaking_rate = max(0.25, min(4.0, speaking_rate))
 
-        pitch = float(request.form.get('pitch', Config.TTS_PITCH))
+        try:
+            pitch = float(request.form.get('pitch', Config.TTS_PITCH))
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Invalid pitch value'}), 400
         pitch = max(-20.0, min(20.0, pitch))
 
         audio_title = (request.form.get('audio_title') or '').strip() or 'Untitled'
@@ -819,7 +869,7 @@ def synthesize():
 @login_required
 def status(job_id):
     job = jobs.get(job_id)
-    if not job:
+    if not job or job.get('user_id') != str(g.current_user_id):
         return jsonify({'error': 'Job not found'}), 404
 
     return jsonify({
@@ -836,7 +886,7 @@ def status(job_id):
 def stream(job_id):
     """Serve WAV audio inline for browser playback via <audio> element."""
     job = jobs.get(job_id)
-    if not job:
+    if not job or job.get('user_id') != str(g.current_user_id):
         return jsonify({'error': 'Job not found'}), 404
 
     if job['status'] != 'complete':
@@ -846,6 +896,23 @@ def stream(job_id):
         return jsonify({'error': 'Output file not found'}), 404
 
     return send_file(job['output_path'], mimetype='audio/wav')
+
+
+# ── Error Handlers ─────────────────────────────────────────────
+
+@app.errorhandler(404)
+def not_found(e):
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Not found'}), 404
+    return render_template('login.html', error='Page not found'), 404
+
+
+@app.errorhandler(500)
+def server_error(e):
+    logger.exception("Internal server error")
+    if request.path.startswith('/api/'):
+        return jsonify({'error': 'Internal server error'}), 500
+    return render_template('login.html', error='Something went wrong'), 500
 
 
 # ── Cleanup ─────────────────────────────────────────────────────

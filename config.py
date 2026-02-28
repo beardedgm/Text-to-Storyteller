@@ -1,11 +1,29 @@
+import logging
 import os
+import secrets
 import tempfile
+from datetime import timedelta
 
 from voice_registry import ALLOWED_VOICE_NAMES, DEFAULT_VOICE
 
+_config_logger = logging.getLogger(__name__)
+
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-fallback-key')
+    # Secret key: require from env in production; auto-generate for dev (sessions
+    # won't survive restarts, but that's safe default behavior).
+    SECRET_KEY = os.environ.get('SECRET_KEY') or ''
+    if not SECRET_KEY:
+        SECRET_KEY = secrets.token_hex(32)
+        _config_logger.warning(
+            "SECRET_KEY not set — using random key. Sessions will not persist across restarts."
+        )
+
+    # Session cookie hardening
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_SECURE = os.environ.get('FLASK_DEBUG', '0') != '1'  # True in prod
+    PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
     MAX_CONTENT_LENGTH = 2 * 1024 * 1024  # 2 MB upload limit
 
     # Authentication (legacy single-user values used for DB seeding)

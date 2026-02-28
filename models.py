@@ -12,7 +12,7 @@ _db = None
 def init_db(mongo_uri, db_name='storyteller'):
     """Initialize the MongoDB connection and return the database reference."""
     global _client, _db
-    _client = MongoClient(mongo_uri)
+    _client = MongoClient(mongo_uri, maxPoolSize=50, minPoolSize=5)
     _db = _client[db_name]
     _ensure_indexes()
     return _db
