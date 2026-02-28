@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+<header>
+    <h1>Text to Storyteller</h1>
+    <p class="subtitle">Sign in to continue</p>
+</header>
+
+<main>
+    <form class="login-form" method="POST" action="{{ url_for('login') }}">
+        {% if error %}
+        <div class="error-banner">
+            <span>{{ error }}</span>
+        </div>
+        {% endif %}
+
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" required autofocus
+                   autocomplete="username">
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required
+                   autocomplete="current-password">
+        </div>
+
+        <button type="submit" class="btn-generate">Sign In</button>
+    </form>
+</main>
+{% endblock %}

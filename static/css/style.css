@@ -362,6 +362,88 @@ input[type="range"]::-moz-range-thumb {
     color: var(--success);
 }
 
+/* === Top Navigation (Logout) === */
+.top-nav {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.5rem 1.5rem;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+}
+
+.nav-user {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.logout-form {
+    display: inline;
+}
+
+.btn-logout {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 0.3rem 0.8rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+}
+
+.btn-logout:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+/* === Login Form === */
+.login-form {
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 2rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.4rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 0.7rem 0.9rem;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-family: inherit;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.login-form .error-banner {
+    margin-top: 0;
+    margin-bottom: 1.25rem;
+}
+
+.login-form .btn-generate {
+    margin-top: 0.5rem;
+}
+
 /* === Footer === */
 footer {
     text-align: center;

@@ -6,6 +6,10 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-fallback-key')
     MAX_CONTENT_LENGTH = 2 * 1024 * 1024  # 2 MB upload limit
 
+    # Authentication (single user)
+    AUTH_USERNAME = os.environ.get('AUTH_USERNAME', 'ddedmon')
+    AUTH_PASSWORD_HASH = os.environ.get('AUTH_PASSWORD_HASH', '')
+
     # Google Cloud TTS settings
     GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY', '')
     TTS_VOICE_NAME = os.environ.get('TTS_VOICE_NAME', 'en-US-Studio-Q')

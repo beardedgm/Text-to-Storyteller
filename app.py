@@ -4,11 +4,13 @@ import threading
 import time
 import logging
 from collections import defaultdict
+from functools import wraps
 
 from dotenv import load_dotenv
 load_dotenv()
 
-from flask import Flask, request, jsonify, render_template, send_file
+from flask import Flask, request, jsonify, render_template, send_file, session, redirect, url_for
+from werkzeug.security import check_password_hash
 
 from config import Config
 from services.markdown_processor import MarkdownProcessor
@@ -22,6 +24,18 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.config.from_object(Config)
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('logged_in'):
+            if request.path.startswith('/api/'):
+                return jsonify({'error': 'Authentication required'}), 401
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 
 # In-memory job tracking
 jobs = {}
@@ -129,12 +143,42 @@ def process_tts_job(job_id, ssml_chunks, voice_params):
         decrement_active_jobs(client_ip)
 
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if session.get('logged_in'):
+        return redirect(url_for('index'))
+
+    error = None
+    if request.method == 'POST':
+        username = request.form.get('username', '')
+        password = request.form.get('password', '')
+
+        if (username == app.config['AUTH_USERNAME'] and
+                app.config['AUTH_PASSWORD_HASH'] and
+                check_password_hash(app.config['AUTH_PASSWORD_HASH'], password)):
+            session['logged_in'] = True
+            session.permanent = True
+            return redirect(url_for('index'))
+        else:
+            error = 'Invalid username or password'
+
+    return render_template('login.html', error=error)
+
+
+@app.route('/logout', methods=['POST'])
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+
 @app.route('/')
+@login_required
 def index():
     return render_template('index.html')
 
 
 @app.route('/api/synthesize', methods=['POST'])
+@login_required
 def synthesize():
     try:
         client_ip = get_client_ip()
@@ -236,6 +280,7 @@ def synthesize():
 
 
 @app.route('/api/status/<job_id>')
+@login_required
 def status(job_id):
     job = jobs.get(job_id)
     if not job:
@@ -250,6 +295,7 @@ def status(job_id):
 
 
 @app.route('/api/download/<job_id>')
+@login_required
 def download(job_id):
     job = jobs.get(job_id)
     if not job:
