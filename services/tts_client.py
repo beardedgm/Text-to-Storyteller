@@ -51,7 +51,13 @@ class TTSClient:
         if not audio_b64:
             raise RuntimeError('Google TTS returned empty audio content')
 
-        return base64.b64decode(audio_b64)
+        wav_bytes = base64.b64decode(audio_b64)
+        logger.info(
+            f"TTS chunk response: {len(wav_bytes)} bytes, "
+            f"header={wav_bytes[:4]!r}, "
+            f"fmt@12={wav_bytes[12:16]!r}"
+        )
+        return wav_bytes
 
     def synthesize_all(self, ssml_chunks: list, progress_callback=None) -> list:
         """Synthesize all chunks with rate limiting and progress tracking."""
