@@ -1,8 +1,10 @@
 """MongoDB connection and collection helpers for Text-to-Storyteller."""
 
+import logging
 from datetime import datetime, timezone
 from pymongo import MongoClient, ASCENDING, DESCENDING
 
+_logger = logging.getLogger(__name__)
 
 # Module-level references (initialized by init_db)
 _client = None
@@ -12,9 +14,17 @@ _db = None
 def init_db(mongo_uri, db_name='storyteller'):
     """Initialize the MongoDB connection and return the database reference."""
     global _client, _db
-    _client = MongoClient(mongo_uri, maxPoolSize=50, minPoolSize=5)
+    _client = MongoClient(
+        mongo_uri,
+        maxPoolSize=50,
+        minPoolSize=5,
+        serverSelectionTimeoutMS=5000,
+    )
     _db = _client[db_name]
-    _ensure_indexes()
+    try:
+        _ensure_indexes()
+    except Exception as e:
+        _logger.warning(f"Could not create indexes on startup (will retry on first query): {e}")
     return _db
 
 
