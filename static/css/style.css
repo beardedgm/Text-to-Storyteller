@@ -1013,6 +1013,451 @@ input[type="range"]::-moz-range-thumb {
     margin-bottom: 2rem;
 }
 
+/* === Landing Nav === */
+.landing-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 2rem;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 10;
+}
+
+.landing-nav-brand {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.landing-nav-links {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.landing-nav-link {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: color 0.2s;
+}
+
+.landing-nav-link:hover {
+    color: var(--text-primary);
+}
+
+.landing-btn-sm {
+    padding: 0.5rem 1.25rem;
+    font-size: 0.9rem;
+}
+
+/* === Landing Pricing Preview === */
+.landing-pricing-preview {
+    padding: 4rem 0;
+    background: var(--bg-secondary);
+}
+
+.landing-pricing-subtitle {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 1.05rem;
+    margin-top: -1.5rem;
+    margin-bottom: 2.5rem;
+}
+
+.landing-pricing-strip {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0.75rem;
+}
+
+.landing-pricing-chip {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem 0.75rem;
+    text-align: center;
+    transition: border-color 0.2s, transform 0.2s;
+}
+
+.landing-pricing-chip:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+}
+
+.landing-pricing-chip-featured {
+    border-color: var(--accent);
+    background: rgba(212, 165, 116, 0.08);
+}
+
+.landing-pricing-chip-name {
+    display: block;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    margin-bottom: 0.35rem;
+}
+
+.landing-pricing-chip-price {
+    display: block;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 0.3rem;
+}
+
+.landing-pricing-chip-detail {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* === Pricing Page === */
+.pricing-hero {
+    text-align: center;
+    padding: 6rem 1.5rem 2rem;
+    background:
+        radial-gradient(ellipse at 50% 0%, rgba(15, 52, 96, 0.6) 0%, transparent 70%),
+        var(--bg-primary);
+}
+
+.pricing-container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+
+.pricing-section {
+    padding: 2rem 0 4rem;
+}
+
+.pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+}
+
+.pricing-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    transition: border-color 0.2s, transform 0.2s;
+}
+
+.pricing-card:hover {
+    border-color: rgba(212, 165, 116, 0.4);
+    transform: translateY(-2px);
+}
+
+.pricing-card-featured {
+    border-color: var(--accent);
+    background: rgba(212, 165, 116, 0.05);
+    box-shadow: 0 0 20px rgba(212, 165, 116, 0.1);
+}
+
+.pricing-card-badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--accent);
+    color: var(--bg-primary);
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.3rem 1rem;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.pricing-card-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.pricing-card-tier {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.pricing-card-price {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+}
+
+.pricing-card-mo {
+    font-size: 1rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+}
+
+.pricing-card-period {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+
+.pricing-card-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.5rem 0;
+    flex: 1;
+}
+
+.pricing-card-features li {
+    padding: 0.4rem 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    padding-left: 1.5rem;
+    position: relative;
+}
+
+.pricing-card-features li::before {
+    content: "\2713";
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+    font-weight: 700;
+}
+
+.pricing-card-features li strong {
+    color: var(--text-primary);
+}
+
+.pricing-feature-muted {
+    opacity: 0.5;
+}
+
+.pricing-feature-muted::before {
+    content: "\2013" !important;
+    color: var(--text-secondary) !important;
+}
+
+.pricing-feature-check {
+    color: var(--success) !important;
+}
+
+.pricing-card-btn {
+    display: block;
+    text-align: center;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.15s;
+}
+
+.pricing-card-btn:hover {
+    transform: translateY(-1px);
+}
+
+.pricing-card-btn-primary {
+    background: transparent;
+    color: var(--accent);
+    border: 2px solid var(--accent);
+}
+
+.pricing-card-btn-primary:hover {
+    background: rgba(212, 165, 116, 0.1);
+}
+
+.pricing-card-btn-secondary {
+    background: rgba(212, 165, 116, 0.1);
+    color: var(--accent);
+    border: 1px solid var(--border);
+}
+
+.pricing-card-btn-accent {
+    background: var(--accent);
+    color: var(--bg-primary);
+}
+
+.pricing-card-btn-accent:hover {
+    background: var(--accent-hover);
+}
+
+/* Voice Categories */
+.pricing-categories {
+    padding: 4rem 0;
+    background: var(--bg-secondary);
+}
+
+.pricing-categories-subtitle {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 1rem;
+    margin-top: -1.5rem;
+    margin-bottom: 2.5rem;
+}
+
+.pricing-categories-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.pricing-category-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem;
+}
+
+.pricing-category-card h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.2rem;
+}
+
+.pricing-category-count {
+    font-size: 0.8rem;
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.pricing-category-card p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin: 0.5rem 0;
+}
+
+.pricing-category-tier {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.06);
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+}
+
+/* Comparison Table */
+.pricing-comparison {
+    padding: 4rem 0;
+}
+
+.pricing-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.pricing-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    min-width: 600px;
+}
+
+.pricing-table th,
+.pricing-table td {
+    padding: 0.75rem 1rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+}
+
+.pricing-table th:first-child,
+.pricing-table td:first-child {
+    text-align: left;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.pricing-table th {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+    position: sticky;
+    top: 0;
+}
+
+.pricing-table td {
+    color: var(--text-secondary);
+}
+
+.pricing-table-featured {
+    background: rgba(212, 165, 116, 0.06) !important;
+}
+
+.pricing-check {
+    color: var(--accent) !important;
+    font-size: 1.1rem;
+}
+
+.pricing-cross {
+    color: rgba(160, 160, 176, 0.3) !important;
+    font-size: 1rem;
+}
+
+/* FAQ */
+.pricing-faq {
+    padding: 4rem 0;
+    background: var(--bg-secondary);
+}
+
+.pricing-faq-list {
+    max-width: 740px;
+    margin: 0 auto;
+}
+
+.pricing-faq-item {
+    border-bottom: 1px solid var(--border);
+}
+
+.pricing-faq-item summary {
+    padding: 1.25rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.pricing-faq-item summary::after {
+    content: "+";
+    font-size: 1.3rem;
+    color: var(--accent);
+    font-weight: 300;
+    transition: transform 0.2s;
+}
+
+.pricing-faq-item[open] summary::after {
+    content: "\2212";
+}
+
+.pricing-faq-item summary::-webkit-details-marker {
+    display: none;
+}
+
+.pricing-faq-item p {
+    padding: 0 0 1.25rem;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    line-height: 1.7;
+}
+
 /* === Profile Page === */
 .profile-section {
     background: var(--bg-card);
@@ -1248,6 +1693,20 @@ footer {
 }
 
 /* === Responsive === */
+@media (max-width: 900px) {
+    .pricing-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .pricing-categories-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .landing-pricing-strip {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
 @media (max-width: 600px) {
     .container {
         padding: 1rem;
@@ -1289,6 +1748,18 @@ footer {
     }
 
     /* Landing page responsive */
+    .landing-nav {
+        padding: 0.75rem 1rem;
+    }
+
+    .landing-nav-brand {
+        font-size: 0.95rem;
+    }
+
+    .landing-nav-links {
+        gap: 0.75rem;
+    }
+
     .landing-title {
         font-size: 2rem;
     }
@@ -1299,7 +1770,7 @@ footer {
 
     .landing-hero {
         min-height: auto;
-        padding: 3rem 1rem 2rem;
+        padding: 5rem 1rem 2rem;
     }
 
     .landing-feature-grid,
@@ -1314,6 +1785,29 @@ footer {
 
     .landing-final-cta h2 {
         font-size: 1.4rem;
+    }
+
+    .landing-pricing-strip {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* Pricing page responsive */
+    .pricing-hero {
+        padding: 5rem 1rem 1.5rem;
+    }
+
+    .pricing-grid {
+        grid-template-columns: 1fr;
+        max-width: 400px;
+        margin: 0 auto;
+    }
+
+    .pricing-categories-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .pricing-card-price {
+        font-size: 2rem;
     }
 
     /* Profile page responsive */

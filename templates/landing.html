@@ -7,14 +7,24 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body class="landing-body">
+    <!-- Nav -->
+    <nav class="landing-nav">
+        <a href="{{ url_for('landing') }}" class="landing-nav-brand">Text to Storyteller</a>
+        <div class="landing-nav-links">
+            <a href="{{ url_for('pricing_page') }}" class="landing-nav-link">Pricing</a>
+            <a href="{{ url_for('login') }}" class="landing-nav-link">Sign In</a>
+            <a href="{{ url_for('register') }}" class="landing-btn landing-btn-primary landing-btn-sm">Get Started</a>
+        </div>
+    </nav>
+
     <!-- Hero -->
     <section class="landing-hero">
         <div class="landing-hero-inner">
             <h1 class="landing-title">Text to Storyteller</h1>
-            <p class="landing-tagline">Transform your adventure modules into rich, narrated audio — start free, unlock 69 premium voices with Patreon.</p>
+            <p class="landing-tagline">Transform your adventure modules into rich, narrated audio. Start free with a single voice, then unlock up to 69 premium voices and millions of characters per month.</p>
             <div class="landing-cta-group">
                 <a href="{{ url_for('register') }}" class="landing-btn landing-btn-primary">Get Started Free</a>
-                <a href="{{ url_for('login') }}" class="landing-btn landing-btn-secondary">Sign In</a>
+                <a href="{{ url_for('pricing_page') }}" class="landing-btn landing-btn-secondary">View Plans</a>
             </div>
         </div>
     </section>
@@ -33,8 +43,8 @@
                             <line x1="8" y1="23" x2="16" y2="23"/>
                         </svg>
                     </div>
-                    <h3>69 Premium Voices</h3>
-                    <p>Start free with a standard voice. Patreon supporters unlock Studio, Neural2, Wavenet, and more — 69 voices total.</p>
+                    <h3>Up to 69 Voices</h3>
+                    <p>From Standard to Studio, WaveNet to Chirp 3: HD &mdash; unlock new voice categories as you level up through six tiers.</p>
                 </div>
                 <div class="landing-feature-card">
                     <div class="landing-feature-icon">
@@ -82,8 +92,51 @@
                 <div class="landing-step">
                     <div class="landing-step-number">3</div>
                     <h3>Download Your Audio</h3>
-                    <p>Hit generate and get a studio-quality WAV file — ready to play or share.</p>
+                    <p>Hit generate and get a studio-quality WAV file &mdash; ready to play or share.</p>
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Preview -->
+    <section class="landing-pricing-preview">
+        <div class="landing-container">
+            <h2 class="landing-section-title">Plans for Every Quest</h2>
+            <p class="landing-pricing-subtitle">From casual listeners to professional narrators. All plans include your personal audio library.</p>
+            <div class="landing-pricing-strip">
+                <div class="landing-pricing-chip">
+                    <span class="landing-pricing-chip-name">Free</span>
+                    <span class="landing-pricing-chip-price">$0</span>
+                    <span class="landing-pricing-chip-detail">1 voice &middot; 500 chars</span>
+                </div>
+                <div class="landing-pricing-chip">
+                    <span class="landing-pricing-chip-name">Adventurer</span>
+                    <span class="landing-pricing-chip-price">$5/mo</span>
+                    <span class="landing-pricing-chip-detail">20 voices &middot; 100K chars</span>
+                </div>
+                <div class="landing-pricing-chip">
+                    <span class="landing-pricing-chip-name">Scribe</span>
+                    <span class="landing-pricing-chip-price">$12/mo</span>
+                    <span class="landing-pricing-chip-detail">34 voices &middot; 500K chars</span>
+                </div>
+                <div class="landing-pricing-chip landing-pricing-chip-featured">
+                    <span class="landing-pricing-chip-name">Bard</span>
+                    <span class="landing-pricing-chip-price">$39/mo</span>
+                    <span class="landing-pricing-chip-detail">67 voices &middot; 750K chars</span>
+                </div>
+                <div class="landing-pricing-chip">
+                    <span class="landing-pricing-chip-name">Archmage</span>
+                    <span class="landing-pricing-chip-price">$99/mo</span>
+                    <span class="landing-pricing-chip-detail">All 69 &middot; 2M chars</span>
+                </div>
+                <div class="landing-pricing-chip">
+                    <span class="landing-pricing-chip-name">Deity</span>
+                    <span class="landing-pricing-chip-price">$249/mo</span>
+                    <span class="landing-pricing-chip-detail">All 69 &middot; 5M chars</span>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 2rem;">
+                <a href="{{ url_for('pricing_page') }}" class="landing-btn landing-btn-secondary">Compare All Plans</a>
             </div>
         </div>
     </section>
@@ -93,7 +146,10 @@
         <div class="landing-container">
             <h2>Ready to Bring Your Stories to Life?</h2>
             <p>Create your free account and start generating narrated audio in minutes.</p>
-            <a href="{{ url_for('register') }}" class="landing-btn landing-btn-primary">Create Your Free Account</a>
+            <div class="landing-cta-group">
+                <a href="{{ url_for('register') }}" class="landing-btn landing-btn-primary">Create Your Free Account</a>
+                <a href="{{ url_for('pricing_page') }}" class="landing-btn landing-btn-secondary">View Plans</a>
+            </div>
         </div>
     </section>
 

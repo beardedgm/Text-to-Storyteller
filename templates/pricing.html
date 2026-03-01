@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing — Text to Storyteller</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="landing-body">
+    <!-- Nav -->
+    <nav class="landing-nav">
+        <a href="{{ url_for('landing') }}" class="landing-nav-brand">Text to Storyteller</a>
+        <div class="landing-nav-links">
+            {% if logged_in %}
+            <a href="{{ url_for('app_page') }}" class="landing-nav-link">Back to App</a>
+            {% else %}
+            <a href="{{ url_for('login') }}" class="landing-nav-link">Sign In</a>
+            <a href="{{ url_for('register') }}" class="landing-btn landing-btn-primary landing-btn-sm">Get Started</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <section class="pricing-hero">
+        <h1 class="landing-title">Choose Your Quest</h1>
+        <p class="landing-tagline">From a single voice to the full pantheon. Every plan includes your personal audio library, smart text processing, and high-quality WAV downloads.</p>
+    </section>
+
+    <!-- Pricing Grid -->
+    <section class="pricing-section">
+        <div class="pricing-container">
+            <div class="pricing-grid">
+
+                <!-- Free -->
+                <div class="pricing-card">
+                    <div class="pricing-card-header">
+                        <span class="pricing-card-tier">Free</span>
+                        <div class="pricing-card-price">$0</div>
+                        <span class="pricing-card-period">forever</span>
+                    </div>
+                    <ul class="pricing-card-features">
+                        <li><strong>500</strong> characters / month</li>
+                        <li><strong>1</strong> voice (Adam &mdash; Standard)</li>
+                        <li class="pricing-feature-muted">No commercial use</li>
+                    </ul>
+                    <a href="{{ url_for('register') }}" class="pricing-card-btn pricing-card-btn-secondary">Get Started Free</a>
+                </div>
+
+                <!-- Adventurer -->
+                <div class="pricing-card">
+                    <div class="pricing-card-header">
+                        <span class="pricing-card-tier">The Adventurer</span>
+                        <div class="pricing-card-price">$5<span class="pricing-card-mo">/mo</span></div>
+                        <span class="pricing-card-period">via Patreon</span>
+                    </div>
+                    <ul class="pricing-card-features">
+                        <li><strong>100K</strong> characters / month</li>
+                        <li><strong>20</strong> voices</li>
+                        <li>Standard + WaveNet</li>
+                        <li class="pricing-feature-muted">No commercial use</li>
+                    </ul>
+                    <a href="https://www.patreon.com/texttonarrator" target="_blank" rel="noopener" class="pricing-card-btn pricing-card-btn-primary">Subscribe on Patreon</a>
+                </div>
+
+                <!-- Scribe -->
+                <div class="pricing-card">
+                    <div class="pricing-card-header">
+                        <span class="pricing-card-tier">The Scribe</span>
+                        <div class="pricing-card-price">$12<span class="pricing-card-mo">/mo</span></div>
+                        <span class="pricing-card-period">via Patreon</span>
+                    </div>
+                    <ul class="pricing-card-features">
+                        <li><strong>500K</strong> characters / month</li>
+                        <li><strong>34</strong> voices</li>
+                        <li>+ Neural2 &amp; Specialty</li>
+                        <li class="pricing-feature-muted">No commercial use</li>
+                    </ul>
+                    <a href="https://www.patreon.com/texttonarrator" target="_blank" rel="noopener" class="pricing-card-btn pricing-card-btn-primary">Subscribe on Patreon</a>
+                </div>
+
+                <!-- Bard (Featured) -->
+                <div class="pricing-card pricing-card-featured">
+                    <div class="pricing-card-badge">Most Popular</div>
+                    <div class="pricing-card-header">
+                        <span class="pricing-card-tier">The Bard</span>
+                        <div class="pricing-card-price">$39<span class="pricing-card-mo">/mo</span></div>
+                        <span class="pricing-card-period">via Patreon</span>
+                    </div>
+                    <ul class="pricing-card-features">
+                        <li><strong>750K</strong> characters / month</li>
+                        <li><strong>67</strong> voices</li>
+                        <li>+ Chirp HD &amp; Chirp 3: HD</li>
+                        <li>Latest-gen, most natural voices</li>
+                        <li class="pricing-feature-muted">No commercial use</li>
+                    </ul>
+                    <a href="https://www.patreon.com/texttonarrator" target="_blank" rel="noopener" class="pricing-card-btn pricing-card-btn-accent">Subscribe on Patreon</a>
+                </div>
+
+                <!-- Archmage -->
+                <div class="pricing-card">
+                    <div class="pricing-card-header">
+                        <span class="pricing-card-tier">The Archmage</span>
+                        <div class="pricing-card-price">$99<span class="pricing-card-mo">/mo</span></div>
+                        <span class="pricing-card-period">via Patreon</span>
+                    </div>
+                    <ul class="pricing-card-features">
+                        <li><strong>2M</strong> characters / month</li>
+                        <li><strong>69</strong> voices (all)</li>
+                        <li>Includes Studio voices</li>
+                        <li class="pricing-feature-check">Commercial use</li>
+                    </ul>
+                    <a href="https://www.patreon.com/texttonarrator" target="_blank" rel="noopener" class="pricing-card-btn pricing-card-btn-primary">Subscribe on Patreon</a>
+                </div>
+
+                <!-- Deity -->
+                <div class="pricing-card">
+                    <div class="pricing-card-header">
+                        <span class="pricing-card-tier">The Deity</span>
+                        <div class="pricing-card-price">$249<span class="pricing-card-mo">/mo</span></div>
+                        <span class="pricing-card-period">via Patreon</span>
+                    </div>
+                    <ul class="pricing-card-features">
+                        <li><strong>5M</strong> characters / month</li>
+                        <li><strong>69</strong> voices (all)</li>
+                        <li>Includes Studio voices</li>
+                        <li class="pricing-feature-check">Commercial use</li>
+                    </ul>
+                    <a href="https://www.patreon.com/texttonarrator" target="_blank" rel="noopener" class="pricing-card-btn pricing-card-btn-primary">Subscribe on Patreon</a>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Voice Categories Breakdown -->
+    <section class="pricing-categories">
+        <div class="pricing-container">
+            <h2 class="landing-section-title">Voice Categories</h2>
+            <p class="pricing-categories-subtitle">Each tier unlocks new voice categories. Higher tiers include everything below them.</p>
+            <div class="pricing-categories-grid">
+                <div class="pricing-category-card">
+                    <h4>Standard</h4>
+                    <span class="pricing-category-count">10 voices</span>
+                    <p>Basic synthesis. Fast, reliable, clear.</p>
+                    <span class="pricing-category-tier">Free+</span>
+                </div>
+                <div class="pricing-category-card">
+                    <h4>WaveNet</h4>
+                    <span class="pricing-category-count">10 voices</span>
+                    <p>DeepMind WaveNet synthesis. Richer, more natural tone.</p>
+                    <span class="pricing-category-tier">Adventurer+</span>
+                </div>
+                <div class="pricing-category-card">
+                    <h4>Neural2</h4>
+                    <span class="pricing-category-count">9 voices</span>
+                    <p>Second-generation neural voices. Expressive and clear.</p>
+                    <span class="pricing-category-tier">Scribe+</span>
+                </div>
+                <div class="pricing-category-card">
+                    <h4>Specialty</h4>
+                    <span class="pricing-category-count">5 voices</span>
+                    <p>Purpose-built for news, casual conversation, and more.</p>
+                    <span class="pricing-category-tier">Scribe+</span>
+                </div>
+                <div class="pricing-category-card">
+                    <h4>Chirp HD &amp; Chirp 3: HD</h4>
+                    <span class="pricing-category-count">33 voices</span>
+                    <p>Latest generation. The most natural, human-like voices available.</p>
+                    <span class="pricing-category-tier">Bard+</span>
+                </div>
+                <div class="pricing-category-card">
+                    <h4>Studio</h4>
+                    <span class="pricing-category-count">2 voices</span>
+                    <p>Studio-quality narration. Premium tier &mdash; each character costs 5&times;.</p>
+                    <span class="pricing-category-tier">Archmage+</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comparison Table -->
+    <section class="pricing-comparison">
+        <div class="pricing-container">
+            <h2 class="landing-section-title">Full Comparison</h2>
+            <div class="pricing-table-wrap">
+                <table class="pricing-table">
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>Free</th>
+                            <th>Adventurer</th>
+                            <th>Scribe</th>
+                            <th class="pricing-table-featured">Bard</th>
+                            <th>Archmage</th>
+                            <th>Deity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Price</td>
+                            <td>$0</td>
+                            <td>$5/mo</td>
+                            <td>$12/mo</td>
+                            <td class="pricing-table-featured">$39/mo</td>
+                            <td>$99/mo</td>
+                            <td>$249/mo</td>
+                        </tr>
+                        <tr>
+                            <td>Monthly Characters</td>
+                            <td>500</td>
+                            <td>100K</td>
+                            <td>500K</td>
+                            <td class="pricing-table-featured">750K</td>
+                            <td>2M</td>
+                            <td>5M</td>
+                        </tr>
+                        <tr>
+                            <td>Voices</td>
+                            <td>1</td>
+                            <td>20</td>
+                            <td>34</td>
+                            <td class="pricing-table-featured">67</td>
+                            <td>69</td>
+                            <td>69</td>
+                        </tr>
+                        <tr>
+                            <td>Standard</td>
+                            <td class="pricing-check">&check;</td>
+                            <td class="pricing-check">&check;</td>
+                            <td class="pricing-check">&check;</td>
+                            <td class="pricing-check pricing-table-featured">&check;</td>
+                            <td class="pricing-check">&check;</td>
+                            <td class="pricing-check">&check;</td>
+                        </tr>
+                        <tr>
+                            <td>WaveNet</td>
+                            <td class="pricing-cross">&times;</td>
+                            <td class="pricing-check">&check;</td>
+                            <td class="pricing-check">&check;</td>
+                            <td class="pricing-check pricing-table-featured">&check;</td>
+                            <td class="pricing-check">&check;</td>
+                            <td class="pricing-check">&check;</td>
+                        </tr>
+                        <tr>
+                            <td>Neural2</td>
+                            <td class="pricing-cross">&times;</td>
+                            <td class="pricing-cross">&times;</td>
+                            <td class="pricing-check">&check;</td>
+                            <td class="pricing-check pricing-table-featured">&check;</td>
+                            <td class="pricing-check">&check;</td>
+                            <td class="pricing-check">&check;</td>
+                        </tr>
+                        <tr>
+                            <td>Specialty</td>
+                            <td class="pricing-cross">&times;</td>
+                            <td class="pricing-cross">&times;</td>
+                            <td class="pricing-check">&check;</td>
+                            <td class="pricing-check pricing-table-featured">&check;</td>
+                            <td class="pricing-check">&check;</td>
+                            <td class="pricing-check">&check;</td>
+                        </tr>
+                        <tr>
+                            <td>Chirp HD</td>
+                            <td class="pricing-cross">&times;</td>
+                            <td class="pricing-cross">&times;</td>
+                            <td class="pricing-cross">&times;</td>
+                            <td class="pricing-check pricing-table-featured">&check;</td>
+                            <td class="pricing-check">&check;</td>
+                            <td class="pricing-check">&check;</td>
+                        </tr>
+                        <tr>
+                            <td>Chirp 3: HD</td>
+                            <td class="pricing-cross">&times;</td>
+                            <td class="pricing-cross">&times;</td>
+                            <td class="pricing-cross">&times;</td>
+                            <td class="pricing-check pricing-table-featured">&check;</td>
+                            <td class="pricing-check">&check;</td>
+                            <td class="pricing-check">&check;</td>
+                        </tr>
+                        <tr>
+                            <td>Studio</td>
+                            <td class="pricing-cross">&times;</td>
+                            <td class="pricing-cross">&times;</td>
+                            <td class="pricing-cross">&times;</td>
+                            <td class="pricing-cross pricing-table-featured">&times;</td>
+                            <td class="pricing-check">&check;</td>
+                            <td class="pricing-check">&check;</td>
+                        </tr>
+                        <tr>
+                            <td>Commercial Use</td>
+                            <td class="pricing-cross">&times;</td>
+                            <td class="pricing-cross">&times;</td>
+                            <td class="pricing-cross">&times;</td>
+                            <td class="pricing-cross pricing-table-featured">&times;</td>
+                            <td class="pricing-check">&check;</td>
+                            <td class="pricing-check">&check;</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="pricing-faq">
+        <div class="pricing-container">
+            <h2 class="landing-section-title">Frequently Asked Questions</h2>
+            <div class="pricing-faq-list">
+                <details class="pricing-faq-item">
+                    <summary>What happens when I hit my character limit?</summary>
+                    <p>Your character allowance resets on the 1st of each month. If you reach your limit mid-month, you can upgrade your plan on Patreon for immediate access to a higher allowance, or wait for the reset.</p>
+                </details>
+                <details class="pricing-faq-item">
+                    <summary>What are Studio voices and why do they cost 5&times;?</summary>
+                    <p>Studio voices are Google's highest-quality narration voices &mdash; they sound remarkably human. Because they cost significantly more to generate, each character of Studio audio counts as 5 standard characters against your monthly allowance. For example, 2M characters on Archmage gives you 400K characters of Studio audio (or any mix of Studio and non-Studio).</p>
+                </details>
+                <details class="pricing-faq-item">
+                    <summary>Can I change my plan anytime?</summary>
+                    <p>Absolutely. Just update your Patreon pledge amount and your tier adjusts automatically the next time you visit the app. Upgrades take effect immediately.</p>
+                </details>
+                <details class="pricing-faq-item">
+                    <summary>What counts as a &ldquo;character&rdquo;?</summary>
+                    <p>Every character in your text counts &mdash; letters, spaces, punctuation, and line breaks. A typical novel page is around 1,500&ndash;2,000 characters. The Scribe plan at 500K characters handles roughly 250&ndash;330 pages per month.</p>
+                </details>
+                <details class="pricing-faq-item">
+                    <summary>Is the free tier really free forever?</summary>
+                    <p>Yes. The free tier gives you 500 characters per month with the Adam (Standard) voice, no credit card required. It&rsquo;s perfect for trying out the service before committing to a plan.</p>
+                </details>
+                <details class="pricing-faq-item">
+                    <summary>What&rsquo;s the difference between Chirp 3: HD and other voices?</summary>
+                    <p>Chirp 3: HD is Google&rsquo;s latest-generation voice synthesis. These 30 voices are the most natural-sounding options available &mdash; they handle emphasis, pacing, and emotion better than any previous generation. Available starting at the Bard tier.</p>
+                </details>
+                <details class="pricing-faq-item">
+                    <summary>Do I need a Patreon account?</summary>
+                    <p>Only if you want a paid tier. Create a free account on Text to Storyteller, then link your Patreon from the Profile page when you&rsquo;re ready to upgrade. The free tier works without Patreon.</p>
+                </details>
+                <details class="pricing-faq-item">
+                    <summary>Can I use the audio commercially?</summary>
+                    <p>Commercial use (podcasts, YouTube, audiobooks for sale, etc.) is available on the Archmage ($99/mo) and Deity ($249/mo) plans. Lower tiers are for personal use only.</p>
+                </details>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="landing-final-cta">
+        <div class="landing-container">
+            <h2>Ready to Bring Your Stories to Life?</h2>
+            <p>Start free and upgrade whenever you need more voices and characters.</p>
+            <div class="landing-cta-group">
+                <a href="{{ url_for('register') }}" class="landing-btn landing-btn-primary">Create Your Free Account</a>
+                <a href="https://www.patreon.com/texttonarrator" target="_blank" rel="noopener" class="landing-btn landing-btn-secondary">View on Patreon</a>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <p>Text to Storyteller &mdash; Powered by Google Cloud Text-to-Speech</p>
+    </footer>
+</body>
+</html>

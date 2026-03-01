@@ -530,6 +530,12 @@ def landing():
     return render_template('landing.html')
 
 
+@app.route('/pricing')
+def pricing_page():
+    logged_in = bool(session.get('user_id'))
+    return render_template('pricing.html', logged_in=logged_in)
+
+
 @app.route('/app')
 @login_required
 def app_page():
