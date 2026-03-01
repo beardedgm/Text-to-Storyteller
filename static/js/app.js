@@ -1,3 +1,270 @@
+// ── Voice Browser Modal ──────────────────────────────────────
+
+class VoiceBrowser {
+    constructor(options = {}) {
+        this.voices = [];
+        this.categories = [];
+        this.selectedVoice = null;
+        this.activeCategory = 'all';
+        this.activeGender = 'all';
+        this.searchQuery = '';
+        this.isOpen = false;
+        this.onChange = options.onChange || (() => {});
+
+        // Audio preview
+        this.previewAudio = new Audio();
+        this.previewingVoice = null;
+
+        this.els = {
+            trigger: document.getElementById('voice-trigger'),
+            triggerText: document.getElementById('voice-trigger-text'),
+            modal: document.getElementById('voice-modal'),
+            close: document.getElementById('voice-modal-close'),
+            search: document.getElementById('voice-search'),
+            genderFilters: document.getElementById('voice-gender-filters'),
+            categoryFilters: document.getElementById('voice-category-filters'),
+            cardGrid: document.getElementById('voice-card-grid'),
+            count: document.getElementById('voice-modal-count'),
+        };
+
+        this._setupEvents();
+    }
+
+    _setupEvents() {
+        // Open modal
+        this.els.trigger.addEventListener('click', () => this.open());
+
+        // Close modal
+        this.els.close.addEventListener('click', () => this.close());
+        this.els.modal.addEventListener('click', (e) => {
+            if (e.target === this.els.modal) this.close();
+        });
+
+        // Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.isOpen) this.close();
+        });
+
+        // Search
+        this.els.search.addEventListener('input', () => {
+            this.searchQuery = this.els.search.value.toLowerCase().trim();
+            this._renderCards();
+        });
+
+        // Gender filters
+        this.els.genderFilters.querySelectorAll('.filter-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                this.els.genderFilters.querySelectorAll('.filter-chip')
+                    .forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                this.activeGender = chip.dataset.gender;
+                this._renderCards();
+            });
+        });
+
+        // Preview audio ended
+        this.previewAudio.addEventListener('ended', () => {
+            this._clearPreviewState();
+        });
+    }
+
+    setVoices(voices, categories) {
+        this.voices = voices;
+        this.categories = categories;
+
+        // Render category chips in modal
+        const container = this.els.categoryFilters;
+        // Remove old dynamic chips (keep the "All" button)
+        container.querySelectorAll('.category-chip:not([data-category="all"])').forEach(c => c.remove());
+
+        categories.forEach(cat => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'category-chip';
+            btn.dataset.category = cat.id;
+            btn.textContent = cat.label;
+            btn.title = cat.description;
+            container.appendChild(btn);
+        });
+
+        // Bind category click handlers (including "All")
+        container.querySelectorAll('.category-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                container.querySelectorAll('.category-chip')
+                    .forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                this.activeCategory = chip.dataset.category;
+                this._renderCards();
+            });
+        });
+
+        // Select default voice if none selected
+        if (!this.selectedVoice && voices.length > 0) {
+            this.selectedVoice = voices[0].api_name;
+        }
+
+        this._updateTrigger();
+        this._renderCards();
+    }
+
+    selectVoice(apiName) {
+        const voice = this.voices.find(v => v.api_name === apiName);
+        if (voice) {
+            this.selectedVoice = apiName;
+            this._updateTrigger();
+            this._renderCards();
+        }
+    }
+
+    getSelectedVoice() {
+        return this.selectedVoice || '';
+    }
+
+    open() {
+        this.isOpen = true;
+        this.els.modal.hidden = false;
+        this.els.search.value = '';
+        this.searchQuery = '';
+        this._renderCards();
+        // Focus search after opening
+        setTimeout(() => this.els.search.focus(), 50);
+    }
+
+    close() {
+        this.isOpen = false;
+        this.els.modal.hidden = true;
+        this._stopPreview();
+    }
+
+    // ── Private methods ──
+
+    _filterVoices() {
+        return this.voices.filter(v => {
+            // Category filter
+            if (this.activeCategory !== 'all' && v.category !== this.activeCategory) return false;
+            // Gender filter
+            if (this.activeGender !== 'all' && v.gender !== this.activeGender) return false;
+            // Search filter
+            if (this.searchQuery) {
+                const haystack = (v.display_name + ' ' + v.category).toLowerCase();
+                if (!haystack.includes(this.searchQuery)) return false;
+            }
+            return true;
+        });
+    }
+
+    _renderCards() {
+        const grid = this.els.cardGrid;
+        grid.innerHTML = '';
+
+        const filtered = this._filterVoices();
+
+        filtered.forEach(voice => {
+            const card = document.createElement('div');
+            card.className = 'voice-card' + (voice.api_name === this.selectedVoice ? ' selected' : '');
+            card.dataset.voice = voice.api_name;
+
+            const catDef = this.categories.find(c => c.id === voice.category);
+            const catLabel = catDef ? catDef.label : voice.category;
+
+            card.innerHTML =
+                '<div class="voice-card-name">' + this._esc(voice.display_name) + '</div>' +
+                '<div class="voice-card-meta">' +
+                    '<span class="voice-badge voice-badge-' + voice.gender + '">' + voice.gender + '</span>' +
+                    '<span>' + this._esc(catLabel) + '</span>' +
+                '</div>' +
+                '<div class="voice-card-actions">' +
+                    '<button type="button" class="voice-preview-btn" data-voice="' +
+                        voice.api_name + '" title="Preview this voice">&#9654; Preview</button>' +
+                '</div>';
+
+            // Click card to select
+            card.addEventListener('click', (e) => {
+                // Don't select when clicking preview button
+                if (e.target.closest('.voice-preview-btn')) return;
+                this._selectAndClose(voice.api_name);
+            });
+
+            // Preview button
+            const previewBtn = card.querySelector('.voice-preview-btn');
+            previewBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this._togglePreview(voice.api_name, previewBtn);
+            });
+
+            grid.appendChild(card);
+        });
+
+        // Update count
+        this.els.count.textContent = filtered.length + ' voice' + (filtered.length !== 1 ? 's' : '');
+    }
+
+    _selectAndClose(apiName) {
+        this.selectedVoice = apiName;
+        this._updateTrigger();
+        this.close();
+        this.onChange(apiName);
+    }
+
+    _updateTrigger() {
+        const voice = this.voices.find(v => v.api_name === this.selectedVoice);
+        if (voice) {
+            const catDef = this.categories.find(c => c.id === voice.category);
+            const catLabel = catDef ? catDef.label : voice.category;
+            this.els.triggerText.textContent =
+                '\uD83C\uDF99\uFE0F ' + voice.display_name + ' (' + catLabel + ', ' + voice.gender + ')';
+        } else {
+            this.els.triggerText.textContent = 'Select a voice...';
+        }
+    }
+
+    _togglePreview(voiceName, btn) {
+        // If same voice is playing, stop it
+        if (this.previewingVoice === voiceName && !this.previewAudio.paused) {
+            this._stopPreview();
+            return;
+        }
+
+        // Stop any current preview
+        this._stopPreview();
+
+        // Start new preview
+        btn.classList.add('playing');
+        btn.innerHTML = '&#9646;&#9646; Stop';
+        this.previewingVoice = voiceName;
+        this.previewAudio.src = '/static/samples/' + voiceName + '.wav';
+        this.previewAudio.play().catch(() => {
+            // Sample file might not exist yet
+            btn.classList.remove('playing');
+            btn.innerHTML = '&#9654; Preview';
+            this.previewingVoice = null;
+        });
+    }
+
+    _stopPreview() {
+        this.previewAudio.pause();
+        this.previewAudio.currentTime = 0;
+        this._clearPreviewState();
+    }
+
+    _clearPreviewState() {
+        this.previewingVoice = null;
+        this.els.cardGrid.querySelectorAll('.voice-preview-btn.playing').forEach(btn => {
+            btn.classList.remove('playing');
+            btn.innerHTML = '&#9654; Preview';
+        });
+    }
+
+    _esc(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+}
+
+
+// ── Main App ─────────────────────────────────────────────────
+
 class StorytellerApp {
     constructor() {
         this.jobId = null;
@@ -10,7 +277,6 @@ class StorytellerApp {
         // Voice data (populated by loadVoices)
         this.voiceData = [];
         this.categories = [];
-        this.activeCategory = 'all';
         this.defaultVoice = '';
         this.userTier = 'free';
 
@@ -32,9 +298,6 @@ class StorytellerApp {
             fileName: document.getElementById('file-name'),
             clearFile: document.getElementById('clear-file'),
             textInput: document.getElementById('text-input'),
-            voiceSelect: document.getElementById('voice-select'),
-            voiceCategoryFilters: document.getElementById('voice-category-filters'),
-            voiceCount: document.getElementById('voice-count'),
             speedSlider: document.getElementById('speed-slider'),
             speedValue: document.getElementById('speed-value'),
             pitchSlider: document.getElementById('pitch-slider'),
@@ -49,7 +312,6 @@ class StorytellerApp {
             progressTime: document.getElementById('progress-time'),
             resultSection: document.getElementById('result-section'),
             audioPlayer: document.getElementById('audio-player'),
-            // New elements
             presetSelect: document.getElementById('preset-select'),
             btnSavePreset: document.getElementById('btn-save-preset'),
             btnDeletePreset: document.getElementById('btn-delete-preset'),
@@ -66,11 +328,22 @@ class StorytellerApp {
             customMoodInput: document.getElementById('custom-mood-input'),
         };
 
+        // Voice browser modal
+        this.voiceBrowser = new VoiceBrowser({
+            onChange: (apiName) => this.onVoiceChanged(apiName),
+        });
+
         this.setupEventListeners();
         this.loadVoices();
         this.loadPresets();
         this.loadSourceTexts();
         this.checkUrlParams();
+    }
+
+    onVoiceChanged(apiName) {
+        this.els.presetSelect.value = '';
+        this.els.btnDeletePreset.hidden = true;
+        this.updateMoodVisibility();
     }
 
     setupEventListeners() {
@@ -110,11 +383,6 @@ class StorytellerApp {
             this.els.presetSelect.value = '';
             this.els.btnDeletePreset.hidden = true;
         });
-        this.els.voiceSelect.addEventListener('change', () => {
-            this.els.presetSelect.value = '';
-            this.els.btnDeletePreset.hidden = true;
-            this.updateMoodVisibility();
-        });
 
         // Generate
         this.els.btnGenerate.addEventListener('click', () => this.submit());
@@ -136,7 +404,7 @@ class StorytellerApp {
         this.els.sourceTextSelect.addEventListener('change', () => this.loadSourceText());
     }
 
-    // ── Voice loading & filtering ──────────────────────────────
+    // ── Voice loading ────────────────────────────────────────────
 
     async loadVoices() {
         try {
@@ -148,8 +416,13 @@ class StorytellerApp {
             this.userTier = data.tier || 'free';
             this.moods = data.moods || [];
             this.customMoodAllowed = data.custom_mood_allowed || false;
-            this.renderCategoryChips();
-            this.renderVoiceOptions('all');
+
+            // Pass data to voice browser
+            this.voiceBrowser.setVoices(this.voiceData, this.categories);
+            if (this.defaultVoice) {
+                this.voiceBrowser.selectVoice(this.defaultVoice);
+            }
+
             this.renderMoodChips();
             if (this.userTier === 'free') {
                 this.renderUpgradePrompts();
@@ -178,65 +451,7 @@ class StorytellerApp {
         }
     }
 
-    renderCategoryChips() {
-        const container = this.els.voiceCategoryFilters;
-
-        this.categories.forEach(cat => {
-            const btn = document.createElement('button');
-            btn.className = 'category-chip';
-            btn.dataset.category = cat.id;
-            btn.textContent = cat.label;
-            btn.title = cat.description;
-            container.appendChild(btn);
-        });
-
-        container.querySelectorAll('.category-chip').forEach(chip => {
-            chip.addEventListener('click', () => {
-                container.querySelectorAll('.category-chip').forEach(c => c.classList.remove('active'));
-                chip.classList.add('active');
-                this.activeCategory = chip.dataset.category;
-                this.renderVoiceOptions(this.activeCategory);
-            });
-        });
-    }
-
-    renderVoiceOptions(category) {
-        const select = this.els.voiceSelect;
-        const previousValue = select.value;
-        select.innerHTML = '';
-
-        const filtered = category === 'all'
-            ? this.voiceData
-            : this.voiceData.filter(v => v.category === category);
-
-        const showCategory = category === 'all';
-
-        filtered.forEach(voice => {
-            const opt = document.createElement('option');
-            opt.value = voice.api_name;
-            const genderLabel = voice.gender === 'M' ? 'M' : 'F';
-            if (showCategory) {
-                const catDef = this.categories.find(c => c.id === voice.category);
-                const catLabel = catDef ? catDef.label : '';
-                opt.textContent = voice.display_name + ' (' + genderLabel + ') \u2014 ' + catLabel;
-            } else {
-                opt.textContent = voice.display_name + ' (' + genderLabel + ')';
-            }
-            select.appendChild(opt);
-        });
-
-        const previousStillVisible = filtered.some(v => v.api_name === previousValue);
-        if (previousStillVisible) {
-            select.value = previousValue;
-        } else {
-            const defaultInList = filtered.some(v => v.api_name === this.defaultVoice);
-            select.value = defaultInList ? this.defaultVoice : (filtered[0]?.api_name || '');
-        }
-
-        this.els.voiceCount.textContent = filtered.length + ' voice' + (filtered.length !== 1 ? 's' : '');
-    }
-
-    // ── Moods (Gemini voices only) ─────────────────────────────
+    // ── Moods (Gemini voices only) ───────────────────────────────
 
     renderMoodChips() {
         const container = this.els.moodChips;
@@ -289,7 +504,7 @@ class StorytellerApp {
         const section = this.els.moodSection;
         if (!section) return;
 
-        const voiceName = this.els.voiceSelect.value;
+        const voiceName = this.voiceBrowser.getSelectedVoice();
         const voice = this.voiceData.find(v => v.api_name === voiceName);
         const isGemini = voice && voice.category === 'gemini';
         const hasMoods = this.moods.length > 0 || this.customMoodAllowed;
@@ -304,7 +519,7 @@ class StorytellerApp {
         });
     }
 
-    // ── Presets ────────────────────────────────────────────────
+    // ── Presets ──────────────────────────────────────────────────
 
     async loadPresets() {
         try {
@@ -338,16 +553,8 @@ class StorytellerApp {
         const preset = this.presets.find(p => p.id === presetId);
         if (!preset) return;
 
-        // Apply voice
-        this.els.voiceSelect.value = preset.voice_name;
-        if (!this.els.voiceSelect.value) {
-            // Voice might be filtered out — switch to "All" category
-            this.activeCategory = 'all';
-            this.els.voiceCategoryFilters.querySelectorAll('.category-chip')
-                .forEach(c => c.classList.toggle('active', c.dataset.category === 'all'));
-            this.renderVoiceOptions('all');
-            this.els.voiceSelect.value = preset.voice_name;
-        }
+        // Apply voice via browser
+        this.voiceBrowser.selectVoice(preset.voice_name);
 
         // Apply speed & pitch
         this.els.speedSlider.value = preset.speaking_rate;
@@ -372,7 +579,7 @@ class StorytellerApp {
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     name: name.trim(),
-                    voice_name: this.els.voiceSelect.value,
+                    voice_name: this.voiceBrowser.getSelectedVoice(),
                     speaking_rate: parseFloat(this.els.speedSlider.value),
                     pitch: parseFloat(this.els.pitchSlider.value),
                     mood_id: this.selectedMood || '',
@@ -410,7 +617,7 @@ class StorytellerApp {
         }
     }
 
-    // ── Source Texts ───────────────────────────────────────────
+    // ── Source Texts ─────────────────────────────────────────────
 
     async loadSourceTexts() {
         try {
@@ -485,7 +692,7 @@ class StorytellerApp {
         }
     }
 
-    // ── Core app logic ─────────────────────────────────────────
+    // ── Core app logic ──────────────────────────────────────────
 
     switchTab(tab) {
         this.activeTab = tab;
@@ -555,7 +762,7 @@ class StorytellerApp {
             formData.append('text', text);
         }
 
-        formData.append('voice_name', this.els.voiceSelect.value);
+        formData.append('voice_name', this.voiceBrowser.getSelectedVoice());
         formData.append('speaking_rate', this.els.speedSlider.value);
         formData.append('pitch', this.els.pitchSlider.value);
 

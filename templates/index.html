@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 
+{% block container_class %}container-app{% endblock %}
+
 {% block content %}
 <header>
     <h1>Text to Storyteller</h1>
@@ -45,52 +47,54 @@
         <textarea id="text-input" placeholder="Paste your adventure module text here..." rows="14"></textarea>
     </div>
 
-    <!-- Voice Settings -->
-    <details class="settings-panel">
-        <summary>Voice Settings</summary>
-        <div class="settings-grid">
-            <!-- Presets -->
-            <div class="setting setting-voice">
-                <label>Preset</label>
-                <div class="preset-row">
-                    <select id="preset-select">
-                        <option value="">Custom settings</option>
-                    </select>
-                    <button class="btn-small" id="btn-save-preset" title="Save current settings as preset">Save</button>
-                    <button class="btn-small btn-danger" id="btn-delete-preset" title="Delete selected preset" hidden>Delete</button>
-                </div>
-            </div>
+    <!-- Voice & Style Settings -->
+    <div class="settings-card">
+        <div class="settings-card-header">Voice &amp; Style</div>
 
-            <!-- Voice -->
-            <div class="setting setting-voice">
-                <label>Voice</label>
-                <div class="voice-category-filters" id="voice-category-filters">
-                    <button class="category-chip active" data-category="all">All</button>
-                </div>
-                <select id="voice-select">
-                    <option value="">Loading voices...</option>
+        <!-- Presets -->
+        <div class="settings-row">
+            <label>Preset</label>
+            <div class="preset-row">
+                <select id="preset-select">
+                    <option value="">Custom settings</option>
                 </select>
-                <span class="voice-count" id="voice-count"></span>
-                <div id="tier-upgrade-note"></div>
+                <button class="btn-small" id="btn-save-preset" title="Save current settings as preset">Save</button>
+                <button class="btn-small btn-danger" id="btn-delete-preset" title="Delete selected preset" hidden>Delete</button>
             </div>
-            <div class="setting">
+        </div>
+
+        <!-- Voice trigger (opens modal browser) -->
+        <div class="settings-row">
+            <label>Voice</label>
+            <button type="button" class="voice-trigger" id="voice-trigger">
+                <span class="voice-trigger-text" id="voice-trigger-text">Loading voices...</span>
+                <span class="voice-trigger-chevron">&#9662;</span>
+            </button>
+            <div id="tier-upgrade-note"></div>
+        </div>
+
+        <!-- Speed + Pitch side by side -->
+        <div class="settings-row settings-row-pair">
+            <div class="setting-pair-item">
                 <label for="speed-slider">Speed: <span id="speed-value">0.95x</span></label>
                 <input type="range" id="speed-slider" min="0.5" max="2.0" step="0.05" value="0.95">
             </div>
-            <div class="setting">
+            <div class="setting-pair-item">
                 <label for="pitch-slider">Pitch: <span id="pitch-value">-2.0</span></label>
                 <input type="range" id="pitch-slider" min="-10.0" max="10.0" step="0.5" value="-2.0">
             </div>
-            <div class="setting setting-full-width" id="mood-section" hidden>
-                <label>Mood <span class="mood-hint">(Gemini voices only)</span></label>
-                <div class="mood-chips" id="mood-chips"></div>
-                <div id="custom-mood-field" hidden>
-                    <input type="text" id="custom-mood-input" placeholder="Or type a custom style prompt..." maxlength="500">
-                    <span class="mood-hint">Describe how you want the voice to sound</span>
-                </div>
+        </div>
+
+        <!-- Mood -->
+        <div class="settings-row" id="mood-section" hidden>
+            <label>Mood <span class="mood-hint">(Gemini voices only)</span></label>
+            <div class="mood-chips" id="mood-chips"></div>
+            <div id="custom-mood-field" hidden>
+                <input type="text" id="custom-mood-input" placeholder="Or type a custom style prompt..." maxlength="500">
+                <span class="mood-hint">Describe how you want the voice to sound</span>
             </div>
         </div>
-    </details>
+    </div>
 
     <!-- Generation Options -->
     <div class="generation-options">
@@ -146,6 +150,33 @@
         </div>
     </div>
 </main>
+
+<!-- Voice Browser Modal (outside <main> to avoid z-index issues) -->
+<div class="voice-modal-overlay" id="voice-modal" hidden>
+    <div class="voice-modal">
+        <div class="voice-modal-header">
+            <h3>Browse Voices</h3>
+            <button type="button" class="voice-modal-close" id="voice-modal-close">&times;</button>
+        </div>
+        <div class="voice-modal-toolbar">
+            <input type="text" class="voice-search" id="voice-search" placeholder="Search voices..." autocomplete="off">
+            <div class="voice-modal-filters">
+                <div class="voice-gender-filters" id="voice-gender-filters">
+                    <button type="button" class="filter-chip active" data-gender="all">All</button>
+                    <button type="button" class="filter-chip" data-gender="M">Male</button>
+                    <button type="button" class="filter-chip" data-gender="F">Female</button>
+                </div>
+                <div class="voice-category-filters" id="voice-category-filters">
+                    <button type="button" class="category-chip active" data-category="all">All</button>
+                </div>
+            </div>
+        </div>
+        <div class="voice-card-grid" id="voice-card-grid"></div>
+        <div class="voice-modal-footer">
+            <span id="voice-modal-count">0 voices</span>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
