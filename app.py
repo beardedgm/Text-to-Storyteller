@@ -236,7 +236,8 @@ def patreon_link():
     redirect_uri = app.config.get('PATREON_REDIRECT_URI')
     if not client_id or not redirect_uri:
         logger.error("Patreon OAuth not configured (missing CLIENT_ID or REDIRECT_URI)")
-        return redirect(url_for('app_page'))
+        session['flash_message'] = 'Patreon OAuth is not configured.'
+        return redirect(url_for('profile_page'))
 
     state = secrets.token_urlsafe(32)
     session['patreon_oauth_state'] = state
@@ -261,12 +262,12 @@ def patreon_callback():
     if not expected or state != expected:
         logger.warning(f"Patreon OAuth state mismatch for user {g.current_user_id}")
         session['flash_message'] = 'Patreon linking failed (invalid state). Please try again.'
-        return redirect(url_for('app_page'))
+        return redirect(url_for('profile_page'))
 
     code = request.args.get('code')
     if not code:
         session['flash_message'] = 'Patreon linking cancelled.'
-        return redirect(url_for('app_page'))
+        return redirect(url_for('profile_page'))
 
     # Exchange code for access token
     try:
@@ -286,7 +287,7 @@ def patreon_callback():
     except Exception as e:
         logger.error(f"Patreon token exchange failed: {e}")
         session['flash_message'] = 'Could not connect to Patreon. Please try again.'
-        return redirect(url_for('app_page'))
+        return redirect(url_for('profile_page'))
 
     # Fetch identity with memberships
     try:
@@ -305,7 +306,7 @@ def patreon_callback():
     except Exception as e:
         logger.error(f"Patreon identity fetch failed: {e}")
         session['flash_message'] = 'Could not verify Patreon membership. Please try again.'
-        return redirect(url_for('app_page'))
+        return redirect(url_for('profile_page'))
 
     # Check for campaign ownership and/or active patron membership
     campaign_id = app.config.get('PATREON_CAMPAIGN_ID', '')
@@ -361,7 +362,7 @@ def patreon_callback():
         logger.info(f"User {g.current_user['email']} linked Patreon but no active pledge (ID: {patreon_user_id})")
         session['flash_message'] = 'Patreon account linked, but no active membership found. Subscribe to unlock all voices.'
 
-    return redirect(url_for('app_page'))
+    return redirect(url_for('profile_page'))
 
 
 # ── In-memory job tracking ──────────────────────────────────────
