@@ -329,6 +329,7 @@ class StorytellerApp {
             sourceTextSelect: document.getElementById('source-text-select'),
             tierUpgradeNote: document.getElementById('tier-upgrade-note'),
             tierUpgradeBanner: document.getElementById('tier-upgrade-banner'),
+            generationSummary: document.getElementById('generation-summary'),
             usageBar: document.getElementById('usage-bar'),
             usageBarFill: document.getElementById('usage-bar-fill'),
             usageBarLabel: document.getElementById('usage-bar-label'),
@@ -355,6 +356,33 @@ class StorytellerApp {
         this.els.presetSelect.value = '';
         this.els.btnDeletePreset.hidden = true;
         this.updateMoodVisibility();
+        this.updateGenerationSummary();
+    }
+
+    updateGenerationSummary() {
+        const el = this.els.generationSummary;
+        if (!el) return;
+
+        const voiceName = this.voiceBrowser.getSelectedVoice();
+        const voice = this.voiceData.find(v => v.api_name === voiceName);
+        if (!voice) {
+            el.textContent = '';
+            return;
+        }
+
+        const catDef = this.categories.find(c => c.id === voice.category);
+        const catLabel = catDef ? catDef.label : voice.category;
+        const speed = this.els.speedSlider.value + 'x';
+
+        let parts = [voice.display_name + ' (' + catLabel + ')', speed];
+
+        // Include mood if selected and Gemini
+        if (this.selectedMood && voice.category === 'gemini') {
+            const mood = this.moods.find(m => m.id === this.selectedMood);
+            if (mood) parts.push(mood.icon + ' ' + mood.label);
+        }
+
+        el.textContent = parts.join(' \u00B7 ');
     }
 
     setupEventListeners() {
@@ -388,6 +416,7 @@ class StorytellerApp {
             this.els.speedValue.textContent = this.els.speedSlider.value + 'x';
             this.els.presetSelect.value = '';
             this.els.btnDeletePreset.hidden = true;
+            this.updateGenerationSummary();
         });
         this.els.pitchSlider.addEventListener('input', () => {
             this.els.pitchValue.textContent = this.els.pitchSlider.value;
@@ -441,6 +470,7 @@ class StorytellerApp {
             }
 
             this.renderMoodChips();
+            this.updateGenerationSummary();
             if (this.userTier === 'free') {
                 this.renderUpgradePrompts();
             }
@@ -547,6 +577,7 @@ class StorytellerApp {
                 container.querySelectorAll('.mood-chip').forEach(c => c.classList.remove('active'));
                 chip.classList.add('active');
                 this.selectedMood = chip.dataset.mood;
+                this.updateGenerationSummary();
             });
         });
 
@@ -637,6 +668,7 @@ class StorytellerApp {
         // Apply mood
         this.updateMoodVisibility();
         this.setMoodById(preset.mood_id || '');
+        this.updateGenerationSummary();
 
         this.els.btnDeletePreset.hidden = false;
     }
