@@ -154,7 +154,7 @@ class StorytellerApp {
         if (this.els.tierUpgradeNote) {
             this.els.tierUpgradeNote.innerHTML =
                 '<p class="tier-upgrade-note">You\'re using the free voice. ' +
-                '<a href="' + linkUrl + '">Connect your Patreon</a> to unlock all 69 premium voices.</p>';
+                '<a href="' + linkUrl + '">Connect your Patreon</a> to unlock all 99 premium voices.</p>';
         }
         // Banner above generate button
         if (this.els.tierUpgradeBanner) {

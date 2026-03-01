@@ -2,7 +2,7 @@
 
 **Transform your text into rich, narrated audio.**
 
-Text to Storyteller turns adventure modules, fiction, blog posts, and any written content into professional-quality narrated audio. Choose from up to 69 voices powered by Google Cloud Text-to-Speech, fine-tune speed and pitch, and download studio-grade WAV files — all from your browser.
+Text to Storyteller turns adventure modules, fiction, blog posts, and any written content into professional-quality narrated audio. Choose from up to 99 voices powered by Google Cloud Text-to-Speech and Gemini, fine-tune speed and pitch, and download studio-grade WAV files — all from your browser.
 
 Whether you're a GM prepping session audio, a writer bringing characters to life, or a creator looking for narration on demand, Text to Storyteller has a tier for you.
 
@@ -10,7 +10,7 @@ Whether you're a GM prepping session audio, a writer bringing characters to life
 
 ## Features
 
-- **Up to 69 Premium Voices** — Seven voice categories from basic Standard to cutting-edge Chirp 3: HD and Studio-quality narration
+- **Up to 99 Premium Voices** — Eight voice categories from basic Standard to cutting-edge Chirp 3: HD, Gemini, and Studio-quality narration
 - **Smart Text Processing** — Upload `.md` or `.txt` files, or paste directly. Long documents are automatically chunked and stitched into seamless audio
 - **Personal Audio Library** — Every generation is saved. Stream, download, and manage your narrated audio anytime
 - **Voice Presets** — Save your favorite voice + speed + pitch combos for one-click access
@@ -28,9 +28,9 @@ Six tiers from free to unlimited, with D&D-inspired names because that's how we 
 | **Free** | $0 | 1 | 500 | No |
 | **The Adventurer** | $5/mo | 20 | 100K | No |
 | **The Scribe** | $12/mo | 34 | 500K | No |
-| **The Bard** | $39/mo | 67 | 750K | No |
-| **The Archmage** | $99/mo | 69 (all) | 2M | Yes |
-| **The Deity** | $249/mo | 69 (all) | 5M | Yes |
+| **The Bard** | $39/mo | 97 | 750K | No |
+| **The Archmage** | $99/mo | 99 (all) | 2M | Yes |
+| **The Deity** | $249/mo | 99 (all) | 5M | Yes |
 
 Paid tiers are powered by [Patreon](https://www.patreon.com/texttonarrator). Link your account and your tier syncs automatically.
 
@@ -46,23 +46,24 @@ Paid tiers are powered by [Patreon](https://www.patreon.com/texttonarrator). Lin
 
 ## Voice Categories
 
-| Category | Voices | Description |
-|----------|--------|-------------|
-| Chirp 3: HD | 30 | Latest generation — the most natural-sounding voices |
-| Chirp HD | 3 | High-definition neural voices |
-| Studio | 2 | Studio-quality narration (5x character cost) |
-| Neural2 | 9 | Second-generation neural voices |
-| WaveNet | 10 | DeepMind WaveNet synthesis |
-| Standard | 10 | Basic synthesis — fast and reliable |
-| Specialty | 5 | Purpose-built voices (casual, news, polyglot) |
+| Category | Voices | Engine | Description |
+|----------|--------|--------|-------------|
+| Gemini | 30 | Gemini | Next-gen Gemini TTS with natural expression and emotional markup |
+| Chirp 3: HD | 30 | Cloud TTS | Latest generation — the most natural-sounding voices |
+| Chirp HD | 3 | Cloud TTS | High-definition neural voices |
+| Studio | 2 | Cloud TTS | Studio-quality narration (5x character cost) |
+| Neural2 | 9 | Cloud TTS | Second-generation neural voices |
+| WaveNet | 10 | Cloud TTS | DeepMind WaveNet synthesis |
+| Standard | 10 | Cloud TTS | Basic synthesis — fast and reliable |
+| Specialty | 5 | Cloud TTS | Purpose-built voices (casual, news, polyglot) |
 
-Higher tiers unlock more categories. Free starts with Standard, and each tier adds new voice types up through Studio at The Archmage level.
+Higher tiers unlock more categories. Free starts with Standard, and each tier adds new voice types up through Studio and Gemini at The Archmage level.
 
 ---
 
 ## Tech Stack
 
-Built with Flask, MongoDB, and Google Cloud Text-to-Speech. Deployed on Render.
+Built with Flask, MongoDB, Google Cloud Text-to-Speech, and Gemini TTS. Deployed on Render.
 
 For the full technical breakdown — architecture, API reference, database schema, environment config, and more — see **[PRD.md](PRD.md)**.
 

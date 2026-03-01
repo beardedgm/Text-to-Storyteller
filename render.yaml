@@ -14,6 +14,8 @@ services:
         sync: false
       - key: GOOGLE_API_KEY
         sync: false
+      - key: GEMINI_API_KEY
+        sync: false
       - key: TTS_VOICE_NAME
         value: en-US-Studio-Q
       - key: TTS_SPEAKING_RATE

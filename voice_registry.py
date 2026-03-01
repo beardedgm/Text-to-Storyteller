@@ -1,22 +1,59 @@
 """
-Central registry of all supported Google Cloud TTS en-US voices.
+Central registry of all supported TTS voices.
 
 Single source of truth for voice names, display labels, categories,
-and gender.  Consumed by config.py (validation), app.py (API endpoint),
-and the frontend (dynamic voice selector).
+engine type, and gender.  Consumed by config.py (validation),
+app.py (API endpoint), and the frontend (dynamic voice selector).
+
+Supports two TTS engines:
+  - cloud_tts  → Google Cloud Text-to-Speech (SSML input, WAV output)
+  - gemini     → Gemini TTS via generativelanguage.googleapis.com (text input, PCM output)
 """
 
 VOICE_CATEGORIES = [
-    {"id": "chirp3hd",  "label": "Chirp 3: HD",  "description": "Latest generation, most natural"},
-    {"id": "chirphd",   "label": "Chirp HD",      "description": "High-definition neural voices"},
-    {"id": "studio",    "label": "Studio",         "description": "Studio-quality narration voices"},
-    {"id": "neural2",   "label": "Neural2",        "description": "Second-generation neural voices"},
-    {"id": "wavenet",   "label": "WaveNet",        "description": "DeepMind WaveNet synthesis"},
-    {"id": "standard",  "label": "Standard",       "description": "Basic synthesis, fastest"},
-    {"id": "specialty", "label": "Specialty",       "description": "Purpose-built voices"},
+    {"id": "gemini",    "label": "Gemini",         "description": "Next-gen Gemini TTS with natural expression", "engine": "gemini"},
+    {"id": "chirp3hd",  "label": "Chirp 3: HD",    "description": "Latest generation, most natural",             "engine": "cloud_tts"},
+    {"id": "chirphd",   "label": "Chirp HD",        "description": "High-definition neural voices",               "engine": "cloud_tts"},
+    {"id": "studio",    "label": "Studio",           "description": "Studio-quality narration voices",             "engine": "cloud_tts"},
+    {"id": "neural2",   "label": "Neural2",          "description": "Second-generation neural voices",             "engine": "cloud_tts"},
+    {"id": "wavenet",   "label": "WaveNet",          "description": "DeepMind WaveNet synthesis",                  "engine": "cloud_tts"},
+    {"id": "standard",  "label": "Standard",         "description": "Basic synthesis, fastest",                    "engine": "cloud_tts"},
+    {"id": "specialty", "label": "Specialty",         "description": "Purpose-built voices",                       "engine": "cloud_tts"},
 ]
 
 VOICES = [
+    # ── Gemini  (30 voices) ────────────────────────────────────────
+    {"api_name": "Achernar",       "display_name": "Achernar",       "category": "gemini", "gender": "F"},
+    {"api_name": "Achird",         "display_name": "Achird",         "category": "gemini", "gender": "M"},
+    {"api_name": "Algenib",        "display_name": "Algenib",        "category": "gemini", "gender": "M"},
+    {"api_name": "Algieba",        "display_name": "Algieba",        "category": "gemini", "gender": "M"},
+    {"api_name": "Alnilam",        "display_name": "Alnilam",        "category": "gemini", "gender": "M"},
+    {"api_name": "Aoede",          "display_name": "Aoede",          "category": "gemini", "gender": "F"},
+    {"api_name": "Autonoe",        "display_name": "Autonoe",        "category": "gemini", "gender": "F"},
+    {"api_name": "Callirrhoe",     "display_name": "Callirrhoe",     "category": "gemini", "gender": "F"},
+    {"api_name": "Charon",         "display_name": "Charon",         "category": "gemini", "gender": "M"},
+    {"api_name": "Despina",        "display_name": "Despina",        "category": "gemini", "gender": "F"},
+    {"api_name": "Enceladus",      "display_name": "Enceladus",      "category": "gemini", "gender": "M"},
+    {"api_name": "Erinome",        "display_name": "Erinome",        "category": "gemini", "gender": "F"},
+    {"api_name": "Fenrir",         "display_name": "Fenrir",         "category": "gemini", "gender": "M"},
+    {"api_name": "Gacrux",         "display_name": "Gacrux",         "category": "gemini", "gender": "F"},
+    {"api_name": "Iapetus",        "display_name": "Iapetus",        "category": "gemini", "gender": "M"},
+    {"api_name": "Kore",           "display_name": "Kore",           "category": "gemini", "gender": "F"},
+    {"api_name": "Laomedeia",      "display_name": "Laomedeia",      "category": "gemini", "gender": "F"},
+    {"api_name": "Leda",           "display_name": "Leda",           "category": "gemini", "gender": "F"},
+    {"api_name": "Orus",           "display_name": "Orus",           "category": "gemini", "gender": "M"},
+    {"api_name": "Puck",           "display_name": "Puck",           "category": "gemini", "gender": "M"},
+    {"api_name": "Pulcherrima",    "display_name": "Pulcherrima",    "category": "gemini", "gender": "F"},
+    {"api_name": "Rasalgethi",     "display_name": "Rasalgethi",     "category": "gemini", "gender": "M"},
+    {"api_name": "Sadachbia",      "display_name": "Sadachbia",      "category": "gemini", "gender": "M"},
+    {"api_name": "Sadaltager",     "display_name": "Sadaltager",     "category": "gemini", "gender": "M"},
+    {"api_name": "Schedar",        "display_name": "Schedar",        "category": "gemini", "gender": "M"},
+    {"api_name": "Sulafat",        "display_name": "Sulafat",        "category": "gemini", "gender": "F"},
+    {"api_name": "Umbriel",        "display_name": "Umbriel",        "category": "gemini", "gender": "M"},
+    {"api_name": "Vindemiatrix",   "display_name": "Vindemiatrix",   "category": "gemini", "gender": "F"},
+    {"api_name": "Zephyr",         "display_name": "Zephyr",         "category": "gemini", "gender": "F"},
+    {"api_name": "Zubenelgenubi",  "display_name": "Zubenelgenubi",  "category": "gemini", "gender": "M"},
+
     # ── Chirp 3: HD  (30 voices) ────────────────────────────────
     {"api_name": "en-US-Chirp3-HD-Achernar",     "display_name": "Elena",     "category": "chirp3hd", "gender": "F"},
     {"api_name": "en-US-Chirp3-HD-Achird",        "display_name": "Marcus",    "category": "chirp3hd", "gender": "M"},
@@ -136,28 +173,28 @@ TIER_CONFIG = {
     'bard': {
         'label': 'The Bard',
         'monthly_chars': 750_000,
-        'categories': {'standard', 'wavenet', 'neural2', 'specialty', 'chirphd', 'chirp3hd'},
+        'categories': {'standard', 'wavenet', 'neural2', 'specialty', 'chirphd', 'chirp3hd', 'gemini'},
         'commercial': False,
         'default_voice': 'en-US-Wavenet-D',
     },
     'archmage': {
         'label': 'The Archmage',
         'monthly_chars': 2_000_000,
-        'categories': {'standard', 'wavenet', 'neural2', 'specialty', 'chirphd', 'chirp3hd', 'studio'},
+        'categories': {'standard', 'wavenet', 'neural2', 'specialty', 'chirphd', 'chirp3hd', 'studio', 'gemini'},
         'commercial': True,
         'default_voice': 'en-US-Wavenet-D',
     },
     'deity': {
         'label': 'The Deity',
         'monthly_chars': 5_000_000,
-        'categories': {'standard', 'wavenet', 'neural2', 'specialty', 'chirphd', 'chirp3hd', 'studio'},
+        'categories': {'standard', 'wavenet', 'neural2', 'specialty', 'chirphd', 'chirp3hd', 'studio', 'gemini'},
         'commercial': True,
         'default_voice': 'en-US-Wavenet-D',
     },
     'owner': {
         'label': 'Owner',
         'monthly_chars': None,  # Unlimited
-        'categories': {'standard', 'wavenet', 'neural2', 'specialty', 'chirphd', 'chirp3hd', 'studio'},
+        'categories': {'standard', 'wavenet', 'neural2', 'specialty', 'chirphd', 'chirp3hd', 'studio', 'gemini'},
         'commercial': True,
         'default_voice': 'en-US-Wavenet-D',
     },
@@ -166,9 +203,10 @@ TIER_CONFIG = {
 # All valid tier names
 VALID_TIERS = set(TIER_CONFIG.keys())
 
-# ── Google Cloud TTS rate limits (requests per minute, per project) ──
+# ── TTS rate limits (requests per minute, per project) ───────────
 
 CATEGORY_RATE_LIMITS = {
+    'gemini':    150,   # Gemini Flash ~150 QPM
     'chirp3hd':  200,   # Chirp3RequestsPerMinutePerProject
     'studio':    500,   # StudioRequestsPerMinutePerProject
     'neural2':   1000,  # Neural2RequestsPerMinutePerProject
@@ -182,8 +220,8 @@ CATEGORY_RATE_LIMITS = {
 def get_chunk_delay(voice_name):
     """Return the delay in seconds between TTS API calls for this voice.
 
-    Targets 80% of the Google Cloud quota to leave headroom for
-    concurrent users sharing the same project quota.
+    Targets 80% of the quota to leave headroom for concurrent users
+    sharing the same project quota.
     """
     cat = get_voice_category(voice_name)
     rpm = CATEGORY_RATE_LIMITS.get(cat, 1000)
@@ -213,6 +251,7 @@ def map_patreon_amount_to_tier(amount_cents):
 # ── Voice lookup helpers ─────────────────────────────────────────
 
 _VOICE_BY_NAME = {v['api_name']: v for v in VOICES}
+_CATEGORY_BY_ID = {c['id']: c for c in VOICE_CATEGORIES}
 
 
 def get_tier_config(tier):
@@ -224,6 +263,13 @@ def get_voice_category(voice_name):
     """Return the category id for a voice api_name, or None."""
     v = _VOICE_BY_NAME.get(voice_name)
     return v['category'] if v else None
+
+
+def get_voice_engine(voice_name):
+    """Return the TTS engine for a voice: 'cloud_tts' or 'gemini'."""
+    cat = get_voice_category(voice_name)
+    cat_info = _CATEGORY_BY_ID.get(cat, {})
+    return cat_info.get('engine', 'cloud_tts')
 
 
 def is_studio_voice(voice_name):

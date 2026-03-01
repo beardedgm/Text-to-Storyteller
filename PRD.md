@@ -2,7 +2,7 @@
 
 ## Overview
 
-Text to Storyteller is a Flask web application that converts written text into narrated audio using Google Cloud Text-to-Speech APIs. It supports multi-user authentication, a 7-tier subscription system managed through Patreon OAuth, a library of 69 English voices across 7 categories, source text management, voice presets, and monthly character usage tracking.
+Text to Storyteller is a Flask web application that converts written text into narrated audio using Google Cloud Text-to-Speech and Gemini TTS APIs. It supports multi-user authentication, a 7-tier subscription system managed through Patreon OAuth, a library of 99 English voices across 8 categories (powered by two TTS engines), source text management, voice presets, and monthly character usage tracking.
 
 ---
 
@@ -12,7 +12,8 @@ Text to Storyteller is a Flask web application that converts written text into n
 |-----------|-----------|---------|
 | Framework | Flask | 3.1.0 |
 | Database | MongoDB (PyMongo) | 4.12.1 |
-| TTS API | Google Cloud Text-to-Speech | v1 REST |
+| TTS API (Cloud) | Google Cloud Text-to-Speech | v1 REST |
+| TTS API (Gemini) | Gemini TTS (generativelanguage API) | v1beta REST |
 | Production Server | Gunicorn | 23.0.0 |
 | Markdown Processing | mistune | 3.1.2 |
 | HTTP Client | requests | 2.32.3 |
@@ -37,7 +38,8 @@ Text-to-Storyteller/
 │   ├── markdown_processor.py       # Markdown → narrator-friendly text
 │   ├── text_chunker.py             # Text chunking for TTS byte limits
 │   ├── tts_client.py               # Google Cloud TTS API client
-│   ├── ssml_builder.py             # SSML generation
+│   ├── gemini_tts_client.py        # Gemini TTS API client + PCM-to-WAV
+│   ├── ssml_builder.py             # SSML generation (Cloud TTS only)
 │   └── wav_concatenator.py         # WAV segment concatenation
 ├── static/
 │   ├── css/style.css               # All application styles
@@ -62,7 +64,8 @@ Text-to-Storyteller/
 
 | Variable | Description |
 |----------|-------------|
-| `GOOGLE_API_KEY` | Google Cloud API key for Text-to-Speech |
+| `GOOGLE_API_KEY` | Google Cloud API key for Cloud TTS voices |
+| `GEMINI_API_KEY` | Google AI Studio API key for Gemini TTS voices |
 
 ### Application (Optional)
 
@@ -311,24 +314,27 @@ Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; 
 | `free` | Free | 500 | Standard (Adam only) | No | 1 |
 | `adventurer` | The Adventurer | 100K | + WaveNet | No | 20 |
 | `scribe` | The Scribe | 500K | + Neural2, Specialty | No | 34 |
-| `bard` | The Bard | 750K | + Chirp HD, Chirp 3: HD | No | 67 |
-| `archmage` | The Archmage | 2M | + Studio | Yes | 69 |
-| `deity` | The Deity | 5M | All | Yes | 69 |
-| `owner` | Owner | Unlimited | All | Yes | 69 |
+| `bard` | The Bard | 750K | + Chirp HD, Chirp 3: HD, Gemini | No | 97 |
+| `archmage` | The Archmage | 2M | + Studio | Yes | 99 |
+| `deity` | The Deity | 5M | All | Yes | 99 |
+| `owner` | Owner | Unlimited | All | Yes | 99 |
 
 The free tier uses an `allowed_voices` override to restrict access to a single voice (`en-US-Standard-A` / Adam) rather than all 10 Standard voices. All other tiers use category-based filtering.
 
 ### Voice Categories
 
-| Category ID | Label | Count | Description |
-|-------------|-------|-------|-------------|
-| `chirp3hd` | Chirp 3: HD | 30 | Latest generation, most natural |
-| `chirphd` | Chirp HD | 3 | High-definition neural voices |
-| `studio` | Studio | 2 | Studio-quality narration |
-| `neural2` | Neural2 | 9 | Second-generation neural |
-| `wavenet` | WaveNet | 10 | DeepMind WaveNet synthesis |
-| `standard` | Standard | 10 | Basic synthesis, fastest |
-| `specialty` | Specialty | 5 | Purpose-built (casual, news, polyglot) |
+| Category ID | Label | Count | Engine | Description |
+|-------------|-------|-------|--------|-------------|
+| `gemini` | Gemini | 30 | `gemini` | Next-gen Gemini TTS with natural expression |
+| `chirp3hd` | Chirp 3: HD | 30 | `cloud_tts` | Latest generation, most natural |
+| `chirphd` | Chirp HD | 3 | `cloud_tts` | High-definition neural voices |
+| `studio` | Studio | 2 | `cloud_tts` | Studio-quality narration |
+| `neural2` | Neural2 | 9 | `cloud_tts` | Second-generation neural |
+| `wavenet` | WaveNet | 10 | `cloud_tts` | DeepMind WaveNet synthesis |
+| `standard` | Standard | 10 | `cloud_tts` | Basic synthesis, fastest |
+| `specialty` | Specialty | 5 | `cloud_tts` | Purpose-built (casual, news, polyglot) |
+
+Each category has an `engine` field that determines which TTS client to use. The `get_voice_engine(voice_name)` function resolves this from the voice name.
 
 ### Studio Voice Multiplier
 
@@ -360,39 +366,51 @@ Campaign owners are assigned the `owner` tier (unlimited).
 | `map_patreon_amount_to_tier(cents)` | `str` | Tier name from Patreon pledge amount |
 | `is_studio_voice(voice_name)` | `bool` | Whether a voice is Studio category |
 | `get_voice_category(voice_name)` | `str` | Category ID for a voice |
+| `get_voice_engine(voice_name)` | `str` | TTS engine: `'cloud_tts'` or `'gemini'` |
+| `get_chunk_delay(voice_name)` | `float` | Seconds between API calls (rate limiting) |
 
 ---
 
 ## TTS Pipeline
 
-End-to-end flow from text input to stored audio:
+End-to-end flow from text input to stored audio. The pipeline forks after TextChunker based on the selected voice's engine (`cloud_tts` or `gemini`):
 
 ```
 User Input (.md/.txt/paste)
     │
     ▼
-MarkdownProcessor          # Converts markdown → narrator-friendly plain text
-    │                       # Headings → [SECTION_BREAK_N] markers
+MarkdownProcessor              # Converts markdown → narrator-friendly plain text
+    │                           # Headings → [SECTION_BREAK_N] markers
     ▼
-TextChunker                 # Splits into <=4800-byte chunks
-    │                       # Priority: section breaks > paragraphs > sentences > words
+TextChunker                     # Splits into <=4800-byte chunks
+    │                           # Priority: section breaks > paragraphs > sentences > words
     ▼
-SSMLBuilder                 # Converts each chunk to SSML
-    │                       # SECTION_BREAK_1 → 1500ms, _2 → 1000ms, _3 → 700ms
-    │                       # Paragraph breaks → 500ms, newlines → 250ms
-    ▼
-TTSClient                   # POST to Google TTS API per chunk
-    │                       # Per-category rate limiting (see table below)
-    │                       # Retry once on failure (2s backoff)
-    ▼
-WavConcatenator             # Concatenates WAV segments
-    │                       # Single segment: passthrough (no processing)
-    │                       # Multiple: extract PCM, rebuild WAV header
-    ▼
-Disk Storage                # {AUDIO_DIR}/{user_id}/{job_id}.wav
-    │                       # 24kHz, 16-bit, mono WAV
-    ▼
-MongoDB                     # audio_files document with metadata
+    ├─── Cloud TTS Path ──────────────┐     ├─── Gemini Path ─────────────────┐
+    │                                 │     │                                  │
+    │  SSMLBuilder                    │     │  prepare_text_for_gemini()       │
+    │    Converts to SSML             │     │    Strips [SECTION_BREAK_N]      │
+    │    BREAK_1→1500ms, _2→1000ms    │     │    markers, returns clean text   │
+    │    Paragraphs→500ms             │     │                                  │
+    │         │                       │     │         │                        │
+    │         ▼                       │     │         ▼                        │
+    │  TTSClient                      │     │  GeminiTTSClient                 │
+    │    POST texttospeech.google...  │     │    POST generativelanguage...    │
+    │    SSML input → WAV output      │     │    Text input → PCM output      │
+    │    GOOGLE_API_KEY               │     │    + PCM-to-WAV header wrapping  │
+    │                                 │     │    GEMINI_API_KEY                │
+    └────────────────┬────────────────┘     └──────────────┬───────────────────┘
+                     │                                     │
+                     └──────────────┬──────────────────────┘
+                                    ▼
+                           WavConcatenator         # Concatenates WAV segments
+                                    │              # Single: passthrough
+                                    │              # Multiple: extract PCM, rebuild WAV header
+                                    ▼
+                           Disk Storage            # {AUDIO_DIR}/{user_id}/{job_id}.wav
+                                    │              # 24kHz, 16-bit, mono WAV
+                                    ▼
+                           MongoDB                 # audio_files document with metadata
+                                                   # includes 'engine' field
 ```
 
 ### Audio Format
@@ -404,19 +422,31 @@ MongoDB                     # audio_files document with metadata
 
 ### TTS Rate Limiting
 
-Per-chunk delays are set per voice category to stay within Google Cloud's per-project quotas (targeting 80% of each limit to leave headroom for concurrent users):
+Per-chunk delays are set per voice category to stay within per-project quotas (targeting 80% of each limit to leave headroom for concurrent users):
 
-| Category | Google Quota (RPM) | Effective Delay | Effective RPM |
-|----------|--------------------|-----------------|---------------|
-| Chirp 3: HD | 200 | 0.375s | ~160 |
-| Studio | 500 | 0.15s | ~400 |
-| Neural2 | 1,000 | 0.075s | ~800 |
-| Chirp HD | 1,000 | 0.075s | ~800 |
-| WaveNet | 1,000 | 0.075s | ~800 |
-| Standard | 1,000 | 0.075s | ~800 |
-| Specialty | 1,000 | 0.075s | ~800 |
+| Category | Engine | Quota (RPM) | Effective Delay | Effective RPM |
+|----------|--------|-------------|-----------------|---------------|
+| Gemini | Gemini | 150 | 0.50s | ~120 |
+| Chirp 3: HD | Cloud TTS | 200 | 0.375s | ~160 |
+| Studio | Cloud TTS | 500 | 0.15s | ~400 |
+| Neural2 | Cloud TTS | 1,000 | 0.075s | ~800 |
+| Chirp HD | Cloud TTS | 1,000 | 0.075s | ~800 |
+| WaveNet | Cloud TTS | 1,000 | 0.075s | ~800 |
+| Standard | Cloud TTS | 1,000 | 0.075s | ~800 |
+| Specialty | Cloud TTS | 1,000 | 0.075s | ~800 |
 
-Delays are calculated by `voice_registry.get_chunk_delay(voice_name)` and passed to `TTSClient` at construction time. On failure, the client retries once after a 2-second backoff.
+Delays are calculated by `voice_registry.get_chunk_delay(voice_name)` and passed to the TTS client at construction time. On failure, both clients retry once after a 2-second backoff.
+
+### Gemini TTS Details
+
+- **Model:** `gemini-2.5-flash-preview-tts`
+- **Endpoint:** `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent`
+- **Input:** Plain text (not SSML). Section break markers are stripped by `prepare_text_for_gemini()`.
+- **Output:** Raw PCM (Linear16, 24kHz, mono) — wrapped in a WAV header by `_pcm_to_wav()` before concatenation.
+- **Auth:** `GEMINI_API_KEY` (Google AI Studio key, separate from `GOOGLE_API_KEY`)
+- **Timeout:** 60s per chunk (longer than Cloud TTS's 30s due to generative model latency)
+- **Voices:** 30 voices using mythological names (Zephyr, Puck, Charon, Kore, etc.) — same voice set as Chirp 3: HD but accessed through the Gemini API
+- **Unique features (not yet exposed in UI):** natural language style prompts, inline emotional markup (`[sigh]`, `[laughing]`, `[whispering]`), multi-speaker synthesis
 
 ---
 
@@ -429,7 +459,7 @@ Jobs are tracked in a process-scoped `dict` (not persistent across restarts). A 
 ### Job Lifecycle
 
 1. **Submit** (`POST /api/synthesize`) — Validate input, check rate limits, check character quota. Create job entry with `status='processing'`. Increment monthly usage. Spawn daemon thread.
-2. **Process** (worker thread) — Chunk text → build SSML → call TTS API per chunk (with progress tracking) → concatenate WAVs → write to disk → create `audio_files` document → set `status='complete'`.
+2. **Process** (worker thread) — Chunk text → prepare (SSML for Cloud TTS, plain text for Gemini) → call TTS API per chunk (with progress tracking) → concatenate WAVs → write to disk → create `audio_files` document → set `status='complete'`.
 3. **Poll** (`GET /api/status/<job_id>`) — Client polls for `{status, completed_chunks, total_chunks, error, audio_id}`.
 4. **Stream** (`GET /api/stream/<job_id>`) — Serve completed WAV via `send_file()`.
 

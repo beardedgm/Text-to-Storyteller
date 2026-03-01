@@ -28,12 +28,13 @@ from voice_registry import (
     VOICES, VOICE_CATEGORIES, DEFAULT_VOICE, VALID_TIERS,
     get_voices_for_tier, get_allowed_voice_names_for_tier,
     get_tier_config, calculate_char_cost, map_patreon_amount_to_tier,
-    get_chunk_delay,
+    get_chunk_delay, get_voice_engine,
 )
 from services.markdown_processor import MarkdownProcessor
 from services.text_chunker import TextChunker
 from services.ssml_builder import SSMLBuilder
 from services.tts_client import TTSClient
+from services.gemini_tts_client import GeminiTTSClient, prepare_text_for_gemini
 from services.wav_concatenator import WavConcatenator
 
 logging.basicConfig(level=logging.INFO)
@@ -466,7 +467,7 @@ def wav_duration_seconds(wav_bytes):
 
 # ── TTS Background Job ─────────────────────────────────────────
 
-def process_tts_job(job_id, ssml_chunks, voice_params):
+def process_tts_job(job_id, prepared_chunks, voice_params):
     """Background worker that runs TTS synthesis and concatenation."""
     client_ip = jobs[job_id].get('client_ip', '')
     user_id = jobs[job_id].get('user_id')
@@ -474,14 +475,23 @@ def process_tts_job(job_id, ssml_chunks, voice_params):
     source_text_id = jobs[job_id].get('source_text_id')
 
     try:
+        engine = get_voice_engine(voice_params['voice_name'])
         chunk_delay = get_chunk_delay(voice_params['voice_name'])
-        tts = TTSClient(**voice_params, chunk_delay=chunk_delay)
+
+        if engine == 'gemini':
+            tts = GeminiTTSClient(
+                voice_name=voice_params['voice_name'],
+                chunk_delay=chunk_delay,
+            )
+        else:
+            tts = TTSClient(**voice_params, chunk_delay=chunk_delay)
+
         concatenator = WavConcatenator()
 
         def update_progress(completed, total):
             jobs[job_id]['completed_chunks'] = completed
 
-        wav_segments = tts.synthesize_all(ssml_chunks, update_progress)
+        wav_segments = tts.synthesize_all(prepared_chunks, update_progress)
         output_wav = concatenator.concatenate(wav_segments)
 
         # Write to persistent storage
@@ -503,6 +513,7 @@ def process_tts_job(job_id, ssml_chunks, voice_params):
             'voice_name': voice_params['voice_name'],
             'speaking_rate': voice_params['speaking_rate'],
             'pitch': voice_params['pitch'],
+            'engine': engine,
             'duration_seconds': duration,
             'file_size_bytes': file_size,
             'source_text_id': ObjectId(source_text_id) if source_text_id else None,
@@ -513,7 +524,7 @@ def process_tts_job(job_id, ssml_chunks, voice_params):
         jobs[job_id]['status'] = 'complete'
         jobs[job_id]['output_path'] = output_path
         jobs[job_id]['audio_id'] = str(result.inserted_id)
-        logger.info(f"Job {job_id} complete: {len(ssml_chunks)} chunks")
+        logger.info(f"Job {job_id} complete: {len(prepared_chunks)} chunks ({engine})")
 
     except Exception as e:
         jobs[job_id]['status'] = 'error'
@@ -1162,15 +1173,20 @@ def synthesize():
                 'error': f'Text is too long ({len(chunks)} chunks). Maximum is {MAX_CHUNKS_PER_JOB} chunks per job.'
             }), 400
 
-        builder = SSMLBuilder()
-        ssml_chunks = [builder.build(chunk) for chunk in chunks]
+        # Prepare chunks for the appropriate TTS engine
+        engine = get_voice_engine(voice_name)
+        if engine == 'gemini':
+            prepared_chunks = [prepare_text_for_gemini(chunk) for chunk in chunks]
+        else:
+            builder = SSMLBuilder()
+            prepared_chunks = [builder.build(chunk) for chunk in chunks]
 
         increment_active_jobs(client_ip)
 
         job_id = str(uuid.uuid4())
         jobs[job_id] = {
             'status': 'processing',
-            'total_chunks': len(ssml_chunks),
+            'total_chunks': len(prepared_chunks),
             'completed_chunks': 0,
             'error': None,
             'output_path': None,
@@ -1190,7 +1206,7 @@ def synthesize():
 
         thread = threading.Thread(
             target=process_tts_job,
-            args=(job_id, ssml_chunks, voice_params),
+            args=(job_id, prepared_chunks, voice_params),
         )
         thread.daemon = True
         thread.start()
@@ -1204,7 +1220,7 @@ def synthesize():
 
         return jsonify({
             'job_id': job_id,
-            'total_chunks': len(ssml_chunks),
+            'total_chunks': len(prepared_chunks),
         })
 
     except ValueError as e:

@@ -49,6 +49,9 @@ class Config:
     TTS_PITCH = float(os.environ.get('TTS_PITCH', '-2.0'))
     TTS_SAMPLE_RATE_HERTZ = 24000
 
+    # Gemini TTS settings (separate API key from Google AI Studio)
+    GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
+
     # Allowed voice names — derived from voice_registry
     ALLOWED_VOICES = ALLOWED_VOICE_NAMES
 
