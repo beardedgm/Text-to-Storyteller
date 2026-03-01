@@ -28,6 +28,7 @@ from voice_registry import (
     VOICES, VOICE_CATEGORIES, DEFAULT_VOICE, VALID_TIERS,
     get_voices_for_tier, get_allowed_voice_names_for_tier,
     get_tier_config, calculate_char_cost, map_patreon_amount_to_tier,
+    get_chunk_delay,
 )
 from services.markdown_processor import MarkdownProcessor
 from services.text_chunker import TextChunker
@@ -473,7 +474,8 @@ def process_tts_job(job_id, ssml_chunks, voice_params):
     source_text_id = jobs[job_id].get('source_text_id')
 
     try:
-        tts = TTSClient(**voice_params)
+        chunk_delay = get_chunk_delay(voice_params['voice_name'])
+        tts = TTSClient(**voice_params, chunk_delay=chunk_delay)
         concatenator = WavConcatenator()
 
         def update_progress(completed, total):

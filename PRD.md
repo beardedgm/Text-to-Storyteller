@@ -382,7 +382,7 @@ SSMLBuilder                 # Converts each chunk to SSML
     │                       # Paragraph breaks → 500ms, newlines → 250ms
     ▼
 TTSClient                   # POST to Google TTS API per chunk
-    │                       # 0.15s delay between requests (~6.7 req/sec)
+    │                       # Per-category rate limiting (see table below)
     │                       # Retry once on failure (2s backoff)
     ▼
 WavConcatenator             # Concatenates WAV segments
@@ -401,6 +401,22 @@ MongoDB                     # audio_files document with metadata
 - **Sample Rate:** 24,000 Hz
 - **Channels:** Mono
 - **Bit Depth:** 16-bit
+
+### TTS Rate Limiting
+
+Per-chunk delays are set per voice category to stay within Google Cloud's per-project quotas (targeting 80% of each limit to leave headroom for concurrent users):
+
+| Category | Google Quota (RPM) | Effective Delay | Effective RPM |
+|----------|--------------------|-----------------|---------------|
+| Chirp 3: HD | 200 | 0.375s | ~160 |
+| Studio | 500 | 0.15s | ~400 |
+| Neural2 | 1,000 | 0.075s | ~800 |
+| Chirp HD | 1,000 | 0.075s | ~800 |
+| WaveNet | 1,000 | 0.075s | ~800 |
+| Standard | 1,000 | 0.075s | ~800 |
+| Specialty | 1,000 | 0.075s | ~800 |
+
+Delays are calculated by `voice_registry.get_chunk_delay(voice_name)` and passed to `TTSClient` at construction time. On failure, the client retries once after a 2-second backoff.
 
 ---
 

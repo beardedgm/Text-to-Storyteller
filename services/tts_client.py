@@ -11,11 +11,13 @@ TTS_ENDPOINT = 'https://texttospeech.googleapis.com/v1/text:synthesize'
 
 class TTSClient:
     def __init__(self, voice_name='en-US-Studio-Q', language_code='en-US',
-                 speaking_rate=0.95, pitch=-2.0, sample_rate_hertz=24000):
+                 speaking_rate=0.95, pitch=-2.0, sample_rate_hertz=24000,
+                 chunk_delay=0.15):
         self.api_key = os.environ.get('GOOGLE_API_KEY', '')
         if not self.api_key:
             raise RuntimeError('GOOGLE_API_KEY environment variable is not set')
 
+        self.chunk_delay = chunk_delay
         self.voice_params = {
             'languageCode': language_code,
             'name': voice_name,
@@ -77,8 +79,8 @@ class TTSClient:
             if progress_callback:
                 progress_callback(i + 1, total)
 
-            # Rate limiting: ~6.7 req/sec, under 500 RPM Studio limit
+            # Rate limiting: delay varies by voice category quota
             if i < total - 1:
-                time.sleep(0.15)
+                time.sleep(self.chunk_delay)
 
         return wav_segments

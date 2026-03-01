@@ -166,6 +166,31 @@ TIER_CONFIG = {
 # All valid tier names
 VALID_TIERS = set(TIER_CONFIG.keys())
 
+# ── Google Cloud TTS rate limits (requests per minute, per project) ──
+
+CATEGORY_RATE_LIMITS = {
+    'chirp3hd':  200,   # Chirp3RequestsPerMinutePerProject
+    'studio':    500,   # StudioRequestsPerMinutePerProject
+    'neural2':   1000,  # Neural2RequestsPerMinutePerProject
+    'chirphd':   1000,  # General RequestsPerMinutePerProject
+    'wavenet':   1000,
+    'standard':  1000,
+    'specialty': 1000,  # PolyglotRequestsPerMinutePerProject (1000)
+}
+
+
+def get_chunk_delay(voice_name):
+    """Return the delay in seconds between TTS API calls for this voice.
+
+    Targets 80% of the Google Cloud quota to leave headroom for
+    concurrent users sharing the same project quota.
+    """
+    cat = get_voice_category(voice_name)
+    rpm = CATEGORY_RATE_LIMITS.get(cat, 1000)
+    safe_rpm = rpm * 0.8
+    return 60.0 / safe_rpm
+
+
 # ── Patreon ↔ App tier mapping (descending by amount) ────────────
 
 PATREON_TIER_MAP = [
