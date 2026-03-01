@@ -203,6 +203,196 @@ TIER_CONFIG = {
 # All valid tier names
 VALID_TIERS = set(TIER_CONFIG.keys())
 
+# ── Narration Moods (Gemini-only systemInstruction presets) ──────
+
+MOODS = [
+    {
+        'id': 'storyteller',
+        'label': 'Storyteller',
+        'icon': '\U0001F4D6',
+        'description': 'Warm, engaging narrator telling a tale',
+        'prompt': (
+            'You are a warm, engaging storyteller narrating an adventure. '
+            'Speak with a rich, inviting tone that draws listeners into the story. '
+            'Vary your pacing naturally \u2014 slow down for suspense, quicken for excitement.'
+        ),
+    },
+    {
+        'id': 'dramatic',
+        'label': 'Dramatic',
+        'icon': '\U0001F3AD',
+        'description': 'Theatrical, high-stakes delivery',
+        'prompt': (
+            'Deliver this with theatrical intensity and dramatic flair. '
+            'Emphasize key words, build tension through pauses and vocal dynamics. '
+            'Each sentence should feel like the fate of the world hangs on every word.'
+        ),
+    },
+    {
+        'id': 'mysterious',
+        'label': 'Mysterious',
+        'icon': '\U0001F311',
+        'description': 'Dark, suspenseful, enigmatic',
+        'prompt': (
+            'Read this in a dark, mysterious tone full of suspense and intrigue. '
+            'Speak softly at times, as if sharing forbidden secrets. '
+            'Your voice should evoke shadowy corridors and ancient riddles.'
+        ),
+    },
+    {
+        'id': 'calm',
+        'label': 'Calm',
+        'icon': '\U0001F54A',
+        'description': 'Relaxed, measured, soothing',
+        'prompt': (
+            'Read this in a calm, measured, soothing tone. Speak at a relaxed pace '
+            'with gentle emphasis. Your voice should bring peace and clarity '
+            'to every word. Avoid urgency or dramatic peaks.'
+        ),
+    },
+    {
+        'id': 'epic',
+        'label': 'Epic',
+        'icon': '\u2694',
+        'description': 'Grand, cinematic, heroic',
+        'prompt': (
+            'Deliver this with grand, epic gravitas befitting a cinematic narrator. '
+            'Your voice should swell with heroic energy and authority. '
+            'Each sentence should feel like the opening of a legendary saga.'
+        ),
+    },
+    {
+        'id': 'whimsical',
+        'label': 'Whimsical',
+        'icon': '\u2728',
+        'description': 'Playful, fairy-tale, lighthearted',
+        'prompt': (
+            'Read this with a whimsical, playful tone as if telling a fairy tale. '
+            'Let your voice dance with lighthearted energy and childlike wonder. '
+            'Every sentence should sparkle with enchantment.'
+        ),
+    },
+    {
+        'id': 'terrified',
+        'label': 'Terrified',
+        'icon': '\U0001F631',
+        'description': 'Scared, fearful, trembling voice',
+        'prompt': (
+            'Read this as if you are genuinely terrified. Your voice should tremble '
+            'and waver with fear. Speak in hushed, breathless tones, occasionally '
+            'quickening as panic sets in. Something horrifying lurks just out of sight.'
+        ),
+    },
+    {
+        'id': 'battle_cry',
+        'label': 'Battle Cry',
+        'icon': '\U0001F4A5',
+        'description': 'Intense, commanding, battle energy',
+        'prompt': (
+            'Deliver this with intense, commanding energy as if rallying troops. '
+            'Your voice should be powerful, bold, and electrifying. '
+            'Each word should feel like a war cry that could inspire an army to charge.'
+        ),
+    },
+    {
+        'id': 'villainous',
+        'label': 'Villainous',
+        'icon': '\U0001F608',
+        'description': 'Menacing, sinister, evil monologue',
+        'prompt': (
+            'Read this as a menacing villain delivering a sinister monologue. '
+            'Speak with dark relish and cruel amusement. Let your voice drip '
+            'with malice. Pause for dramatic effect, savoring the fear you inspire.'
+        ),
+    },
+    {
+        'id': 'tavern_tale',
+        'label': 'Tavern Tale',
+        'icon': '\U0001F37A',
+        'description': 'Folksy, casual, fireside storytelling',
+        'prompt': (
+            'Tell this as a friendly tavern keeper sharing a tale over drinks by the fire. '
+            'Speak in a folksy, casual, warm manner. Add a conversational quality \u2014 '
+            'chuckle at the funny parts, lean in for the juicy bits.'
+        ),
+    },
+    {
+        'id': 'sacred',
+        'label': 'Sacred',
+        'icon': '\U0001F56F',
+        'description': 'Reverent, holy, priestly tone',
+        'prompt': (
+            'Read this with a reverent, sacred tone as if performing a holy ritual. '
+            'Speak slowly with measured dignity and solemnity. '
+            'Your voice should carry the weight of divine authority.'
+        ),
+    },
+    {
+        'id': 'mournful',
+        'label': 'Mournful',
+        'icon': '\U0001F56F',
+        'description': 'Sad, grieving, somber',
+        'prompt': (
+            'Deliver this with deep sadness and somber grief. Your voice should be '
+            'heavy with sorrow, speaking slowly and softly. '
+            'Let pauses convey the weight of mourning. Each word should ache.'
+        ),
+    },
+]
+
+_MOOD_BY_ID = {m['id']: m for m in MOODS}
+VALID_MOOD_IDS = set(_MOOD_BY_ID.keys())
+
+# Which tiers get which moods. 'custom_mood' = can type a free-text prompt.
+MOOD_TIER_CONFIG = {
+    'free':       {'allowed_moods': set(),                                                          'custom_mood': False},
+    'adventurer': {'allowed_moods': set(),                                                          'custom_mood': False},
+    'scribe':     {'allowed_moods': set(),                                                          'custom_mood': False},
+    'bard':       {'allowed_moods': {'storyteller', 'calm', 'dramatic', 'mysterious', 'epic'},      'custom_mood': False},
+    'archmage':   {'allowed_moods': VALID_MOOD_IDS,                                                 'custom_mood': True},
+    'deity':      {'allowed_moods': VALID_MOOD_IDS,                                                 'custom_mood': True},
+    'owner':      {'allowed_moods': VALID_MOOD_IDS,                                                 'custom_mood': True},
+}
+
+
+def get_mood_by_id(mood_id):
+    """Return the mood dict for a given mood_id, or None."""
+    return _MOOD_BY_ID.get(mood_id)
+
+
+def get_moods_for_tier(tier):
+    """Return (moods_list, custom_mood_allowed) for the given tier."""
+    cfg = MOOD_TIER_CONFIG.get(tier, MOOD_TIER_CONFIG['free'])
+    allowed = cfg['allowed_moods']
+    moods = [m for m in MOODS if m['id'] in allowed]
+    return moods, cfg['custom_mood']
+
+
+def validate_mood_for_tier(tier, mood_id=None, custom_prompt=None):
+    """Return the validated systemInstruction text, or None.
+
+    Returns None if no mood selected, the tier can't access the mood,
+    or custom_prompt is provided but the tier can't use custom moods.
+    Custom prompt takes precedence over mood_id if both are provided.
+    """
+    cfg = MOOD_TIER_CONFIG.get(tier, MOOD_TIER_CONFIG['free'])
+
+    # Custom prompt takes priority
+    if custom_prompt and custom_prompt.strip():
+        if cfg['custom_mood']:
+            return custom_prompt.strip()[:2000]
+        return None
+
+    # Preset mood
+    if mood_id:
+        if mood_id in cfg['allowed_moods']:
+            mood = _MOOD_BY_ID.get(mood_id)
+            if mood:
+                return mood['prompt']
+        return None
+
+    return None
+
 # ── TTS rate limits (requests per minute, per project) ───────────
 
 CATEGORY_RATE_LIMITS = {

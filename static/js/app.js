@@ -18,6 +18,9 @@ class StorytellerApp {
         this.presets = [];
         this.sourceTexts = [];
         this.loadedSourceTextId = null;
+        this.moods = [];
+        this.customMoodAllowed = false;
+        this.selectedMood = '';
 
         this.els = {
             tabs: document.querySelectorAll('.tab'),
@@ -57,6 +60,10 @@ class StorytellerApp {
             sourceTextSelect: document.getElementById('source-text-select'),
             tierUpgradeNote: document.getElementById('tier-upgrade-note'),
             tierUpgradeBanner: document.getElementById('tier-upgrade-banner'),
+            moodSection: document.getElementById('mood-section'),
+            moodChips: document.getElementById('mood-chips'),
+            customMoodField: document.getElementById('custom-mood-field'),
+            customMoodInput: document.getElementById('custom-mood-input'),
         };
 
         this.setupEventListeners();
@@ -106,6 +113,7 @@ class StorytellerApp {
         this.els.voiceSelect.addEventListener('change', () => {
             this.els.presetSelect.value = '';
             this.els.btnDeletePreset.hidden = true;
+            this.updateMoodVisibility();
         });
 
         // Generate
@@ -138,8 +146,11 @@ class StorytellerApp {
             this.categories = data.categories;
             this.defaultVoice = data.default;
             this.userTier = data.tier || 'free';
+            this.moods = data.moods || [];
+            this.customMoodAllowed = data.custom_mood_allowed || false;
             this.renderCategoryChips();
             this.renderVoiceOptions('all');
+            this.renderMoodChips();
             if (this.userTier === 'free') {
                 this.renderUpgradePrompts();
             }
@@ -225,6 +236,74 @@ class StorytellerApp {
         this.els.voiceCount.textContent = filtered.length + ' voice' + (filtered.length !== 1 ? 's' : '');
     }
 
+    // ── Moods (Gemini voices only) ─────────────────────────────
+
+    renderMoodChips() {
+        const container = this.els.moodChips;
+        if (!container) return;
+        container.innerHTML = '';
+
+        if (this.moods.length === 0 && !this.customMoodAllowed) {
+            if (this.els.moodSection) this.els.moodSection.hidden = true;
+            return;
+        }
+
+        // "None" chip (default)
+        const noneChip = document.createElement('button');
+        noneChip.type = 'button';
+        noneChip.className = 'mood-chip active';
+        noneChip.dataset.mood = '';
+        noneChip.textContent = 'None';
+        noneChip.title = 'No mood \u2014 default Gemini delivery';
+        container.appendChild(noneChip);
+
+        // Mood preset chips
+        this.moods.forEach(mood => {
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'mood-chip';
+            chip.dataset.mood = mood.id;
+            chip.textContent = mood.icon + ' ' + mood.label;
+            chip.title = mood.description;
+            container.appendChild(chip);
+        });
+
+        // Click handlers
+        container.querySelectorAll('.mood-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                container.querySelectorAll('.mood-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                this.selectedMood = chip.dataset.mood;
+            });
+        });
+
+        // Custom mood field
+        if (this.customMoodAllowed && this.els.customMoodField) {
+            this.els.customMoodField.hidden = false;
+        }
+
+        this.updateMoodVisibility();
+    }
+
+    updateMoodVisibility() {
+        const section = this.els.moodSection;
+        if (!section) return;
+
+        const voiceName = this.els.voiceSelect.value;
+        const voice = this.voiceData.find(v => v.api_name === voiceName);
+        const isGemini = voice && voice.category === 'gemini';
+        const hasMoods = this.moods.length > 0 || this.customMoodAllowed;
+        section.hidden = !isGemini || !hasMoods;
+    }
+
+    setMoodById(moodId) {
+        this.selectedMood = moodId || '';
+        if (!this.els.moodChips) return;
+        this.els.moodChips.querySelectorAll('.mood-chip').forEach(c => {
+            c.classList.toggle('active', c.dataset.mood === this.selectedMood);
+        });
+    }
+
     // ── Presets ────────────────────────────────────────────────
 
     async loadPresets() {
@@ -276,6 +355,10 @@ class StorytellerApp {
         this.els.pitchSlider.value = preset.pitch;
         this.els.pitchValue.textContent = preset.pitch;
 
+        // Apply mood
+        this.updateMoodVisibility();
+        this.setMoodById(preset.mood_id || '');
+
         this.els.btnDeletePreset.hidden = false;
     }
 
@@ -292,6 +375,7 @@ class StorytellerApp {
                     voice_name: this.els.voiceSelect.value,
                     speaking_rate: parseFloat(this.els.speedSlider.value),
                     pitch: parseFloat(this.els.pitchSlider.value),
+                    mood_id: this.selectedMood || '',
                 }),
             });
             const data = await resp.json();
@@ -474,6 +558,15 @@ class StorytellerApp {
         formData.append('voice_name', this.els.voiceSelect.value);
         formData.append('speaking_rate', this.els.speedSlider.value);
         formData.append('pitch', this.els.pitchSlider.value);
+
+        // Mood (Gemini voices only)
+        if (this.selectedMood) {
+            formData.append('mood_id', this.selectedMood);
+        }
+        const customMoodText = this.els.customMoodInput ? this.els.customMoodInput.value.trim() : '';
+        if (customMoodText && this.customMoodAllowed) {
+            formData.append('custom_mood', customMoodText);
+        }
 
         // Audio title
         const audioTitle = this.els.audioTitle.value.trim() || 'Untitled';

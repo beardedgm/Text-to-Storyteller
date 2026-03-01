@@ -25,10 +25,11 @@ import requests as http_requests
 
 from datetime import datetime
 from voice_registry import (
-    VOICES, VOICE_CATEGORIES, DEFAULT_VOICE, VALID_TIERS,
+    VOICES, VOICE_CATEGORIES, DEFAULT_VOICE, VALID_TIERS, VALID_MOOD_IDS,
     get_voices_for_tier, get_allowed_voice_names_for_tier,
     get_tier_config, calculate_char_cost, map_patreon_amount_to_tier,
     get_chunk_delay, get_voice_engine,
+    get_moods_for_tier, validate_mood_for_tier, get_mood_by_id,
 )
 from services.markdown_processor import MarkdownProcessor
 from services.text_chunker import TextChunker
@@ -482,9 +483,15 @@ def process_tts_job(job_id, prepared_chunks, voice_params):
             tts = GeminiTTSClient(
                 voice_name=voice_params['voice_name'],
                 chunk_delay=chunk_delay,
+                system_instruction=voice_params.get('system_instruction'),
             )
         else:
-            tts = TTSClient(**voice_params, chunk_delay=chunk_delay)
+            tts = TTSClient(
+                voice_name=voice_params['voice_name'],
+                speaking_rate=voice_params['speaking_rate'],
+                pitch=voice_params['pitch'],
+                chunk_delay=chunk_delay,
+            )
 
         concatenator = WavConcatenator()
 
@@ -514,6 +521,8 @@ def process_tts_job(job_id, prepared_chunks, voice_params):
             'speaking_rate': voice_params['speaking_rate'],
             'pitch': voice_params['pitch'],
             'engine': engine,
+            'mood_id': voice_params.get('mood_id'),
+            'custom_mood': voice_params.get('custom_mood'),
             'duration_seconds': duration,
             'file_size_bytes': file_size,
             'source_text_id': ObjectId(source_text_id) if source_text_id else None,
@@ -695,11 +704,14 @@ def get_usage():
 def get_voices():
     tier = get_user_tier(g.current_user)
     voices, categories, default = get_voices_for_tier(tier)
+    moods, custom_mood_allowed = get_moods_for_tier(tier)
     return jsonify({
         'categories': categories,
         'voices': voices,
         'default': default,
         'tier': tier,
+        'moods': moods,
+        'custom_mood_allowed': custom_mood_allowed,
     })
 
 
@@ -735,12 +747,17 @@ def create_preset():
     if existing:
         return jsonify({'error': 'A preset with that name already exists'}), 409
 
+    mood_id = (data.get('mood_id') or '').strip()
+    if mood_id and mood_id not in VALID_MOOD_IDS:
+        mood_id = ''
+
     doc = {
         'user_id': g.current_user_id,
         'name': name,
         'voice_name': voice_name,
         'speaking_rate': float(speaking_rate),
         'pitch': float(pitch),
+        'mood_id': mood_id,
         'created_at': utcnow(),
     }
     result = mongo_db.voice_presets.insert_one(doc)
@@ -803,6 +820,7 @@ def _preset_to_dict(doc):
         'voice_name': doc['voice_name'],
         'speaking_rate': doc['speaking_rate'],
         'pitch': doc['pitch'],
+        'mood_id': doc.get('mood_id', ''),
         'created_at': doc.get('created_at', '').isoformat() if doc.get('created_at') else None,
     }
 
@@ -1045,12 +1063,20 @@ def delete_audio(audio_id):
 
 
 def _audio_to_dict(doc):
+    mood_id = doc.get('mood_id')
+    mood_label = None
+    if mood_id:
+        mood = get_mood_by_id(mood_id)
+        mood_label = mood['label'] if mood else mood_id
     return {
         'id': str(doc['_id']),
         'title': doc['title'],
         'voice_name': doc['voice_name'],
         'speaking_rate': doc['speaking_rate'],
         'pitch': doc['pitch'],
+        'mood_id': mood_id,
+        'mood_label': mood_label,
+        'custom_mood': bool(doc.get('custom_mood')),
         'duration_seconds': doc.get('duration_seconds'),
         'file_size_bytes': doc.get('file_size_bytes', 0),
         'source_text_id': str(doc['source_text_id']) if doc.get('source_text_id') else None,
@@ -1103,6 +1129,16 @@ def synthesize():
         except (ValueError, TypeError):
             return jsonify({'error': 'Invalid pitch value'}), 400
         pitch = max(-20.0, min(20.0, pitch))
+
+        # ── Mood validation (Gemini-only) ────────────────────────
+        mood_id = request.form.get('mood_id', '').strip() or None
+        custom_mood = request.form.get('custom_mood', '').strip() or None
+        system_instruction = None
+        engine = get_voice_engine(voice_name)
+        if engine == 'gemini':
+            system_instruction = validate_mood_for_tier(
+                tier, mood_id=mood_id, custom_prompt=custom_mood,
+            )
 
         audio_title = (request.form.get('audio_title') or '').strip() or 'Untitled'
 
@@ -1174,7 +1210,7 @@ def synthesize():
             }), 400
 
         # Prepare chunks for the appropriate TTS engine
-        engine = get_voice_engine(voice_name)
+        # (engine was set above during mood validation)
         if engine == 'gemini':
             prepared_chunks = [prepare_text_for_gemini(chunk) for chunk in chunks]
         else:
@@ -1202,6 +1238,9 @@ def synthesize():
             'voice_name': voice_name,
             'speaking_rate': speaking_rate,
             'pitch': pitch,
+            'system_instruction': system_instruction,
+            'mood_id': mood_id,
+            'custom_mood': custom_mood,
         }
 
         thread = threading.Thread(
