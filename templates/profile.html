@@ -236,7 +236,7 @@
             const d = await resp.json();
             const el = document.getElementById('usage-content');
             const vc = document.getElementById('profile-voice-count');
-            if (vc) vc.textContent = d.voice_count + (d.voice_count === 69 ? ' voices (all)' : d.voice_count === 1 ? ' voice' : ' voices');
+            if (vc) vc.textContent = d.voice_count + (d.voice_count === 99 ? ' voices (all)' : d.voice_count === 1 ? ' voice' : ' voices');
 
             if (d.monthly_limit === null) {
                 el.innerHTML = '<p style="color:var(--success);font-size:0.95rem;">Unlimited — no usage limits apply.</p>';
