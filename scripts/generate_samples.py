@@ -89,13 +89,51 @@ def create_placeholder_wav(path: str, duration_sec: float = 1.0,
     return data_size + 44
 
 
+def _is_chirp_voice(api_name: str) -> bool:
+    """Chirp-HD and Chirp3-HD voices don't support pitch adjustment."""
+    return 'Chirp' in api_name
+
+
 def generate_cloud_tts_sample(voice: dict) -> bytes:
-    """Generate a sample using Google Cloud TTS."""
-    delay = get_chunk_delay(voice['api_name'])
+    """Generate a sample using Google Cloud TTS.
+
+    Chirp-HD and Chirp3-HD voices don't support pitch parameters, so
+    we use pitch=0 for those.  Chirp-HD voices also reject SSML and
+    speed changes, so we fall back to the raw REST API with plain text.
+    """
+    api_name = voice['api_name']
+    delay = get_chunk_delay(api_name)
+    is_chirp = _is_chirp_voice(api_name)
+
+    # Chirp-HD (non-3) voices reject SSML and speed/pitch entirely —
+    # use the REST API directly with plain text.
+    if api_name.startswith('en-US-Chirp-HD-'):
+        import base64
+        import requests
+        resp = requests.post(
+            'https://texttospeech.googleapis.com/v1/text:synthesize',
+            params={'key': os.environ.get('GOOGLE_API_KEY', '')},
+            json={
+                'input': {'text': SAMPLE_TEXT},
+                'voice': {'languageCode': 'en-US', 'name': api_name},
+                'audioConfig': {
+                    'audioEncoding': 'LINEAR16',
+                    'sampleRateHertz': 24000,
+                },
+            },
+        )
+        if not resp.ok:
+            err = resp.json().get('error', {}).get('message', resp.text)
+            raise RuntimeError(f'TTS error ({resp.status_code}): {err}')
+        return base64.b64decode(resp.json()['audioContent'])
+
+    # Chirp3-HD voices support speed but not pitch
+    pitch = 0.0 if is_chirp else CLOUD_TTS_PITCH
+
     client = TTSClient(
-        voice_name=voice['api_name'],
+        voice_name=api_name,
         speaking_rate=CLOUD_TTS_RATE,
-        pitch=CLOUD_TTS_PITCH,
+        pitch=pitch,
         chunk_delay=delay,
     )
     builder = SSMLBuilder()
