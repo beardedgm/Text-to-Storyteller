@@ -10,12 +10,16 @@ Usage:
     python scripts/generate_samples.py --force      # regenerate everything
     python scripts/generate_samples.py --voice Zephyr  # one specific voice
     python scripts/generate_samples.py --category gemini  # one category
+    python scripts/generate_samples.py --replace-placeholders  # replace short placeholder WAVs
+    python scripts/generate_samples.py --status      # show which samples are real vs placeholder
 
-Requires GOOGLE_API_KEY and GEMINI_API_KEY environment variables.
+Requires GOOGLE_API_KEY (Cloud TTS) and/or GEMINI_API_KEY environment variables.
 """
 
 import argparse
+import math
 import os
+import struct
 import sys
 import time
 
@@ -43,9 +47,46 @@ SAMPLES_DIR = os.path.join(
 CLOUD_TTS_RATE = 0.95
 CLOUD_TTS_PITCH = -2.0
 
+# Real samples are typically 600-800 KB; placeholders are ~47 KB
+PLACEHOLDER_SIZE_THRESHOLD = 100_000  # bytes
+
 
 def sample_path(api_name: str) -> str:
     return os.path.join(SAMPLES_DIR, f'{api_name}.wav')
+
+
+def is_placeholder(path: str) -> bool:
+    """Check if a sample file is a placeholder (short tone) vs real audio."""
+    if not os.path.exists(path):
+        return False
+    return os.path.getsize(path) < PLACEHOLDER_SIZE_THRESHOLD
+
+
+def create_placeholder_wav(path: str, duration_sec: float = 1.0,
+                           sample_rate: int = 24000) -> int:
+    """Create a short WAV with a brief tone as a placeholder.
+
+    Returns the total file size in bytes.
+    """
+    num_samples = int(sample_rate * duration_sec)
+    tone_samples = int(sample_rate * 0.3)
+    data = bytearray()
+    for i in range(num_samples):
+        if i < tone_samples:
+            val = int(6000 * math.sin(2 * math.pi * 440 * i / sample_rate))
+        else:
+            val = 0
+        data.extend(struct.pack('<h', val))
+
+    data_size = len(data)
+    header = struct.pack('<4sI4s', b'RIFF', 36 + data_size, b'WAVE')
+    fmt = struct.pack('<4sIHHIIHH', b'fmt ', 16, 1, 1,
+                      sample_rate, sample_rate * 2, 2, 16)
+    data_header = struct.pack('<4sI', b'data', data_size)
+
+    with open(path, 'wb') as f:
+        f.write(header + fmt + data_header + bytes(data))
+    return data_size + 44
 
 
 def generate_cloud_tts_sample(voice: dict) -> bytes:
@@ -80,13 +121,51 @@ def generate_sample(voice: dict) -> bytes:
     return generate_cloud_tts_sample(voice)
 
 
+def show_status():
+    """Print a summary of real vs placeholder vs missing samples."""
+    real, placeholder, missing = [], [], []
+    for v in VOICES:
+        path = sample_path(v['api_name'])
+        if os.path.exists(path):
+            if is_placeholder(path):
+                placeholder.append(v)
+            else:
+                real.append(v)
+        else:
+            missing.append(v)
+
+    print(f'=== Sample Status ===')
+    print(f'  Real samples:        {len(real)}')
+    print(f'  Placeholder samples: {len(placeholder)}')
+    print(f'  Missing:             {len(missing)}')
+    print()
+
+    if placeholder:
+        cats = {}
+        for v in placeholder:
+            cats.setdefault(v['category'], []).append(v['display_name'])
+        print('Placeholder voices (need regeneration):')
+        for cat, names in sorted(cats.items()):
+            print(f'  {cat} ({len(names)}): {", ".join(names)}')
+        print()
+
+    if missing:
+        print('Missing voices (no file at all):')
+        for v in missing:
+            print(f'  {v["display_name"]} ({v["api_name"]})')
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Generate voice preview samples'
     )
     parser.add_argument(
         '--force', action='store_true',
-        help='Regenerate existing samples',
+        help='Regenerate all samples (including real ones)',
+    )
+    parser.add_argument(
+        '--replace-placeholders', action='store_true',
+        help='Replace placeholder WAVs with real samples',
     )
     parser.add_argument(
         '--voice',
@@ -96,12 +175,20 @@ def main():
         '--category',
         help='Generate for a specific category only',
     )
+    parser.add_argument(
+        '--status', action='store_true',
+        help='Show sample status and exit',
+    )
     args = parser.parse_args()
+
+    if args.status:
+        show_status()
+        return
 
     os.makedirs(SAMPLES_DIR, exist_ok=True)
 
     # Filter voices
-    voices = VOICES
+    voices = list(VOICES)
     if args.voice:
         v = args.voice
         voices = [
@@ -121,6 +208,7 @@ def main():
     generated = 0
     skipped = 0
     failed = 0
+    failed_voices = []
 
     print(f'Generating samples for {total} voices...')
     print(f'Output: {os.path.abspath(SAMPLES_DIR)}')
@@ -130,10 +218,14 @@ def main():
         path = sample_path(voice['api_name'])
         label = f"[{i}/{total}] {voice['display_name']} ({voice['api_name']})"
 
+        # Skip logic
         if os.path.exists(path) and not args.force:
-            print(f'  SKIP  {label} — already exists')
-            skipped += 1
-            continue
+            if args.replace_placeholders and is_placeholder(path):
+                pass  # Will regenerate below
+            else:
+                print(f'  SKIP  {label} — already exists')
+                skipped += 1
+                continue
 
         try:
             print(f'  GEN   {label}...', end='', flush=True)
@@ -149,15 +241,39 @@ def main():
             # Rate limiting between voices to avoid quota issues
             if i < total:
                 engine = get_voice_engine(voice['api_name'])
-                delay = 1.0 if engine == 'gemini' else 0.3
+                # Gemini free tier: 3 RPM → 21s between calls
+                # Cloud TTS: much higher limits → 0.3s between calls
+                delay = 21.0 if engine == 'gemini' else 0.3
                 time.sleep(delay)
 
         except Exception as e:
-            print(f' FAILED: {e}')
+            err_str = str(e)
+            print(f' FAILED: {err_str[:100]}')
             failed += 1
+            failed_voices.append(voice)
+
+            # On rate limit errors, wait longer before continuing
+            if '429' in err_str:
+                print('    Rate limited — waiting 60s...', flush=True)
+                time.sleep(60)
+
+    # Create placeholders for any failures (so the app doesn't break)
+    if failed_voices:
+        print()
+        print(f'Creating placeholder WAVs for {len(failed_voices)} failed voices...')
+        for voice in failed_voices:
+            path = sample_path(voice['api_name'])
+            if not os.path.exists(path):
+                create_placeholder_wav(path)
+                print(f'  PLACEHOLDER  {voice["display_name"]}')
 
     print()
     print(f'Done: {generated} generated, {skipped} skipped, {failed} failed')
+    if failed_voices:
+        print(f'Failed voices: {[v["api_name"] for v in failed_voices]}')
+        print()
+        print('To regenerate failed voices later:')
+        print('  python scripts/generate_samples.py --replace-placeholders')
 
 
 if __name__ == '__main__':
