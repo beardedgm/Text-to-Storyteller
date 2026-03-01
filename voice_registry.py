@@ -104,24 +104,133 @@ VOICES = [
 # Derived lookup set — used by config.py for validation
 ALLOWED_VOICE_NAMES = {v["api_name"] for v in VOICES}
 
-DEFAULT_VOICE = "en-US-Studio-Q"
+DEFAULT_VOICE = "en-US-Wavenet-D"
 
 # ── Tier Configuration ───────────────────────────────────────────
-FREE_TIER_VOICES = {'en-US-Standard-A'}          # Adam only
-FREE_TIER_DEFAULT_VOICE = 'en-US-Standard-A'
+
+STUDIO_CHAR_MULTIPLIER = 5  # 1 Studio char costs 5× standard chars
+
+TIER_CONFIG = {
+    'free': {
+        'label': 'Free',
+        'monthly_chars': 500,
+        'categories': {'standard'},
+        'allowed_voices': {'en-US-Standard-A'},  # Only Adam
+        'commercial': False,
+        'default_voice': 'en-US-Standard-A',
+    },
+    'adventurer': {
+        'label': 'The Adventurer',
+        'monthly_chars': 100_000,
+        'categories': {'standard', 'wavenet'},
+        'commercial': False,
+        'default_voice': 'en-US-Wavenet-D',
+    },
+    'scribe': {
+        'label': 'The Scribe',
+        'monthly_chars': 500_000,
+        'categories': {'standard', 'wavenet', 'neural2', 'specialty'},
+        'commercial': False,
+        'default_voice': 'en-US-Wavenet-D',
+    },
+    'bard': {
+        'label': 'The Bard',
+        'monthly_chars': 750_000,
+        'categories': {'standard', 'wavenet', 'neural2', 'specialty', 'chirphd', 'chirp3hd'},
+        'commercial': False,
+        'default_voice': 'en-US-Wavenet-D',
+    },
+    'archmage': {
+        'label': 'The Archmage',
+        'monthly_chars': 2_000_000,
+        'categories': {'standard', 'wavenet', 'neural2', 'specialty', 'chirphd', 'chirp3hd', 'studio'},
+        'commercial': True,
+        'default_voice': 'en-US-Wavenet-D',
+    },
+    'deity': {
+        'label': 'The Deity',
+        'monthly_chars': 5_000_000,
+        'categories': {'standard', 'wavenet', 'neural2', 'specialty', 'chirphd', 'chirp3hd', 'studio'},
+        'commercial': True,
+        'default_voice': 'en-US-Wavenet-D',
+    },
+    'owner': {
+        'label': 'Owner',
+        'monthly_chars': None,  # Unlimited
+        'categories': {'standard', 'wavenet', 'neural2', 'specialty', 'chirphd', 'chirp3hd', 'studio'},
+        'commercial': True,
+        'default_voice': 'en-US-Wavenet-D',
+    },
+}
+
+# All valid tier names
+VALID_TIERS = set(TIER_CONFIG.keys())
+
+# ── Patreon ↔ App tier mapping (descending by amount) ────────────
+
+PATREON_TIER_MAP = [
+    (24900, 'deity'),
+    (9900,  'archmage'),
+    (3900,  'bard'),
+    (1200,  'scribe'),
+    (500,   'adventurer'),
+]
+
+
+def map_patreon_amount_to_tier(amount_cents):
+    """Map a Patreon pledge amount (in cents) to an app tier."""
+    for threshold, tier in PATREON_TIER_MAP:
+        if amount_cents >= threshold:
+            return tier
+    return 'free'
+
+
+# ── Voice lookup helpers ─────────────────────────────────────────
+
+_VOICE_BY_NAME = {v['api_name']: v for v in VOICES}
+
+
+def get_tier_config(tier):
+    """Return the TIER_CONFIG entry for the given tier, defaulting to free."""
+    return TIER_CONFIG.get(tier, TIER_CONFIG['free'])
+
+
+def get_voice_category(voice_name):
+    """Return the category id for a voice api_name, or None."""
+    v = _VOICE_BY_NAME.get(voice_name)
+    return v['category'] if v else None
+
+
+def is_studio_voice(voice_name):
+    """Return True if the voice is a Studio-quality voice."""
+    return get_voice_category(voice_name) == 'studio'
+
+
+def calculate_char_cost(char_count, voice_name):
+    """Return the effective character cost (Studio voices cost 5×)."""
+    if is_studio_voice(voice_name):
+        return char_count * STUDIO_CHAR_MULTIPLIER
+    return char_count
 
 
 def get_voices_for_tier(tier):
     """Return (voices, categories, default_voice) for the given tier."""
-    if tier in ('patron', 'owner'):
-        return VOICES, VOICE_CATEGORIES, DEFAULT_VOICE
-    # Free tier: only voices in FREE_TIER_VOICES
-    free_voices = [v for v in VOICES if v['api_name'] in FREE_TIER_VOICES]
-    free_cats = [c for c in VOICE_CATEGORIES
-                 if c['id'] in {v['category'] for v in free_voices}]
-    return free_voices, free_cats, FREE_TIER_DEFAULT_VOICE
+    cfg = get_tier_config(tier)
+    allowed = cfg.get('allowed_voices')
+    if allowed:
+        tier_voices = [v for v in VOICES if v['api_name'] in allowed]
+        tier_cats = [c for c in VOICE_CATEGORIES if c['id'] in {v['category'] for v in tier_voices}]
+    else:
+        allowed_cats = cfg['categories']
+        tier_voices = [v for v in VOICES if v['category'] in allowed_cats]
+        tier_cats = [c for c in VOICE_CATEGORIES if c['id'] in allowed_cats]
+    return tier_voices, tier_cats, cfg['default_voice']
 
 
 def get_allowed_voice_names_for_tier(tier):
     """Return set of allowed voice api_names for the given tier."""
-    return ALLOWED_VOICE_NAMES if tier in ('patron', 'owner') else FREE_TIER_VOICES
+    cfg = get_tier_config(tier)
+    allowed = cfg.get('allowed_voices')
+    if allowed:
+        return set(allowed)
+    return {v['api_name'] for v in VOICES if v['category'] in cfg['categories']}

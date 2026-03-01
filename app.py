@@ -23,9 +23,11 @@ from models import init_db, get_db, utcnow
 import click
 import requests as http_requests
 
+from datetime import datetime
 from voice_registry import (
-    VOICES, VOICE_CATEGORIES, DEFAULT_VOICE,
+    VOICES, VOICE_CATEGORIES, DEFAULT_VOICE, VALID_TIERS,
     get_voices_for_tier, get_allowed_voice_names_for_tier,
+    get_tier_config, calculate_char_cost, map_patreon_amount_to_tier,
 )
 from services.markdown_processor import MarkdownProcessor
 from services.text_chunker import TextChunker
@@ -198,9 +200,9 @@ def logout():
 
 @app.cli.command('set-tier')
 @click.argument('email')
-@click.argument('tier', type=click.Choice(['free', 'patron', 'owner']))
+@click.argument('tier', type=click.Choice(sorted(VALID_TIERS)))
 def set_tier_cmd(email, tier):
-    """Set a user's subscription tier. Usage: flask set-tier <email> <free|patron|owner>"""
+    """Set a user's subscription tier. Usage: flask set-tier <email> <tier>"""
     result = mongo_db.users.update_one(
         {'email': email}, {'$set': {'tier': tier}}
     )
@@ -289,13 +291,14 @@ def patreon_callback():
         session['flash_message'] = 'Could not connect to Patreon. Please try again.'
         return redirect(url_for('profile_page'))
 
-    # Fetch identity with memberships
+    # Fetch identity with memberships and tier data
     try:
         identity_resp = http_requests.get(
             'https://www.patreon.com/api/oauth2/v2/identity',
             params={
-                'include': 'memberships.campaign,campaign',
-                'fields[member]': 'patron_status',
+                'include': 'memberships.campaign,memberships.currently_entitled_tiers,campaign',
+                'fields[member]': 'patron_status,currently_entitled_amount_cents',
+                'fields[tier]': 'amount_cents,title',
                 'fields[user]': 'full_name',
             },
             headers={'Authorization': f'Bearer {access_token}'},
@@ -324,8 +327,8 @@ def patreon_callback():
     if user_campaign and user_campaign == campaign_id:
         is_owner = True
 
-    # Check for active patron membership on our campaign
-    is_active_patron = False
+    # Check for active patron membership on our campaign and determine tier
+    patron_tier = 'free'
     for item in identity.get('included', []):
         if item.get('type') != 'member':
             continue
@@ -337,7 +340,8 @@ def patreon_callback():
         )
         patron_status = item.get('attributes', {}).get('patron_status', '')
         if member_campaign == campaign_id and patron_status == 'active_patron':
-            is_active_patron = True
+            amount_cents = item.get('attributes', {}).get('currently_entitled_amount_cents', 0) or 0
+            patron_tier = map_patreon_amount_to_tier(amount_cents)
             break
 
     if is_owner:
@@ -347,13 +351,14 @@ def patreon_callback():
         )
         logger.info(f"User {g.current_user['email']} recognised as campaign owner (Patreon ID: {patreon_user_id})")
         session['flash_message'] = 'Welcome back, my liege. All voices are at your command.'
-    elif is_active_patron:
+    elif patron_tier != 'free':
+        tier_cfg = get_tier_config(patron_tier)
         mongo_db.users.update_one(
             {'_id': g.current_user_id},
-            {'$set': {'tier': 'patron', 'patreon_id': patreon_user_id}},
+            {'$set': {'tier': patron_tier, 'patreon_id': patreon_user_id}},
         )
-        logger.info(f"User {g.current_user['email']} upgraded to patron (Patreon ID: {patreon_user_id})")
-        session['flash_message'] = 'Patreon linked! You now have access to all 69 premium voices.'
+        logger.info(f"User {g.current_user['email']} set to tier '{patron_tier}' (Patreon ID: {patreon_user_id})")
+        session['flash_message'] = f"Patreon linked! You are now {tier_cfg['label']}."
     else:
         mongo_db.users.update_one(
             {'_id': g.current_user_id},
@@ -625,6 +630,43 @@ def patreon_unlink():
     )
     logger.info(f"User {g.current_user['email']} unlinked Patreon, tier reset to free")
     return jsonify({'success': True, 'message': 'Patreon unlinked. Tier reset to free.'})
+
+
+# ── API: Usage ──────────────────────────────────────────────────
+
+@app.route('/api/usage')
+@login_required
+def get_usage():
+    """Return current month's character usage for the logged-in user."""
+    tier = get_user_tier(g.current_user)
+    tier_cfg = get_tier_config(tier)
+    month_key = datetime.utcnow().strftime('%Y-%m')
+    chars_used = (
+        g.current_user.get('usage', {})
+        .get(month_key, {})
+        .get('chars_used', 0)
+    )
+    monthly_limit = tier_cfg['monthly_chars']
+    voices, _, _ = get_voices_for_tier(tier)
+
+    now = datetime.utcnow()
+    # Calculate reset date (first of next month)
+    if now.month == 12:
+        reset_date = datetime(now.year + 1, 1, 1)
+    else:
+        reset_date = datetime(now.year, now.month + 1, 1)
+
+    return jsonify({
+        'tier': tier,
+        'tier_label': tier_cfg['label'],
+        'monthly_limit': monthly_limit,
+        'chars_used': chars_used,
+        'chars_remaining': max(0, monthly_limit - chars_used) if monthly_limit else None,
+        'period': now.strftime('%B %Y'),
+        'resets': reset_date.strftime('%B %d, %Y'),
+        'voice_count': len(voices),
+        'commercial': tier_cfg['commercial'],
+    })
 
 
 # ── API: Voices ─────────────────────────────────────────────────
@@ -1080,6 +1122,27 @@ def synthesize():
         if not clean_text.strip():
             return jsonify({'error': 'No readable text found after processing'}), 400
 
+        # ── Monthly usage enforcement ────────────────────────────
+        tier_cfg = get_tier_config(tier)
+        monthly_limit = tier_cfg['monthly_chars']
+        char_cost = calculate_char_cost(len(clean_text), voice_name)
+
+        if monthly_limit is not None:  # None = unlimited (owner)
+            month_key = datetime.utcnow().strftime('%Y-%m')
+            current_usage = (
+                g.current_user.get('usage', {})
+                .get(month_key, {})
+                .get('chars_used', 0)
+            )
+            if current_usage + char_cost > monthly_limit:
+                remaining = max(0, monthly_limit - current_usage)
+                return jsonify({
+                    'error': f'Monthly character limit reached. '
+                             f'You have {remaining:,} characters remaining this month. '
+                             f'This request would cost {char_cost:,} characters.'
+                             f'{" (Studio voices cost 5× standard)" if char_cost != len(clean_text) else ""}'
+                }), 403
+
         chunker = TextChunker(max_bytes=Config.TTS_MAX_BYTES_PER_REQUEST)
         chunks = chunker.chunk(clean_text)
 
@@ -1123,6 +1186,13 @@ def synthesize():
         )
         thread.daemon = True
         thread.start()
+
+        # Increment monthly usage counter (after job accepted)
+        if monthly_limit is not None:
+            mongo_db.users.update_one(
+                {'_id': g.current_user_id},
+                {'$inc': {f'usage.{month_key}.chars_used': char_cost}},
+            )
 
         return jsonify({
             'job_id': job_id,

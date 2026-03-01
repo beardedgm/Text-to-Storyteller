@@ -36,8 +36,16 @@
                     </svg>
                     Owner
                 </span>
-                {% elif g.current_user.tier == 'patron' %}
-                <span class="profile-badge profile-badge-patron">Patron</span>
+                {% elif g.current_user.tier == 'deity' %}
+                <span class="profile-badge profile-badge-deity">The Deity</span>
+                {% elif g.current_user.tier == 'archmage' %}
+                <span class="profile-badge profile-badge-archmage">The Archmage</span>
+                {% elif g.current_user.tier == 'bard' %}
+                <span class="profile-badge profile-badge-bard">The Bard</span>
+                {% elif g.current_user.tier == 'scribe' %}
+                <span class="profile-badge profile-badge-scribe">The Scribe</span>
+                {% elif g.current_user.tier == 'adventurer' %}
+                <span class="profile-badge profile-badge-adventurer">The Adventurer</span>
                 {% else %}
                 <span class="profile-badge profile-badge-free">Free</span>
                 {% endif %}
@@ -45,17 +53,19 @@
         </div>
         <div class="profile-info-row">
             <span class="profile-label">Voice Access</span>
-            <span class="profile-value">
-                {% if g.current_user.tier in ('patron', 'owner') %}
-                All 69 premium voices
-                {% else %}
-                1 voice (Adam)
-                {% endif %}
-            </span>
+            <span class="profile-value" id="profile-voice-count">—</span>
         </div>
         <div class="profile-info-row">
             <span class="profile-label">Member Since</span>
             <span class="profile-value">{{ g.current_user.created_at.strftime('%B %d, %Y') if g.current_user.created_at else 'Unknown' }}</span>
+        </div>
+    </div>
+
+    <!-- Monthly Usage -->
+    <div class="profile-section" id="usage-section">
+        <h3 class="profile-section-title">Monthly Usage</h3>
+        <div id="usage-content">
+            <p style="color: var(--text-secondary); font-size: 0.9rem;">Loading…</p>
         </div>
     </div>
 
@@ -218,6 +228,46 @@
             showMsg(msg, data.error || 'Failed to update', true);
         }
     });
+
+    // Load usage data
+    (async function loadUsage() {
+        try {
+            const resp = await fetch('/api/usage');
+            const d = await resp.json();
+            const el = document.getElementById('usage-content');
+            const vc = document.getElementById('profile-voice-count');
+            if (vc) vc.textContent = d.voice_count + (d.voice_count === 69 ? ' voices (all)' : d.voice_count === 1 ? ' voice' : ' voices');
+
+            if (d.monthly_limit === null) {
+                el.innerHTML = '<p style="color:var(--success);font-size:0.95rem;">Unlimited — no usage limits apply.</p>';
+                return;
+            }
+
+            const pct = Math.min(100, Math.round((d.chars_used / d.monthly_limit) * 100));
+            const barColor = pct > 90 ? 'var(--error)' : pct > 70 ? '#e8a838' : 'var(--accent)';
+
+            function fmt(n) {
+                if (n >= 1_000_000) return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+                if (n >= 1_000) return (n / 1_000).toFixed(1).replace(/\.0$/, '') + 'K';
+                return n.toLocaleString();
+            }
+
+            el.innerHTML =
+                '<div class="usage-bar-track"><div class="usage-bar-fill" style="width:' + pct + '%;background:' + barColor + '"></div></div>' +
+                '<div class="usage-stats">' +
+                    '<span>' + fmt(d.chars_used) + ' / ' + fmt(d.monthly_limit) + ' characters</span>' +
+                    '<span>' + pct + '% used</span>' +
+                '</div>' +
+                '<div class="usage-meta">' +
+                    '<span>Period: ' + d.period + '</span>' +
+                    '<span>Resets: ' + d.resets + '</span>' +
+                '</div>' +
+                (d.commercial ? '<div class="usage-commercial">✓ Commercial use allowed</div>' : '');
+        } catch (e) {
+            document.getElementById('usage-content').innerHTML =
+                '<p style="color:var(--error);font-size:0.9rem;">Could not load usage data.</p>';
+        }
+    })();
 
     // Unlink Patreon
     const unlinkBtn = document.getElementById('btn-unlink-patreon');
