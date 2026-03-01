@@ -86,6 +86,58 @@
         </div>
     </section>
 
+    <!-- Hear Our Voices -->
+    <section class="landing-voices">
+        <div class="landing-container">
+            <h2 class="landing-section-title">Hear Our Voices</h2>
+            <p class="landing-voices-subtitle">Preview a few of our 99 voices across six engine categories.</p>
+            <div class="landing-voice-grid">
+                <div class="landing-voice-sample">
+                    <div class="landing-voice-info">
+                        <span class="landing-voice-name">Zephyr</span>
+                        <span class="landing-voice-detail">F &middot; Gemini</span>
+                    </div>
+                    <button type="button" class="landing-play-btn" data-sample="Zephyr">&#9654; Play</button>
+                </div>
+                <div class="landing-voice-sample">
+                    <div class="landing-voice-info">
+                        <span class="landing-voice-name">Marcus</span>
+                        <span class="landing-voice-detail">M &middot; Chirp 3: HD</span>
+                    </div>
+                    <button type="button" class="landing-play-btn" data-sample="en-US-Chirp3-HD-Achird">&#9654; Play</button>
+                </div>
+                <div class="landing-voice-sample">
+                    <div class="landing-voice-info">
+                        <span class="landing-voice-name">Ophelia</span>
+                        <span class="landing-voice-detail">F &middot; Chirp HD</span>
+                    </div>
+                    <button type="button" class="landing-play-btn" data-sample="en-US-Chirp-HD-O">&#9654; Play</button>
+                </div>
+                <div class="landing-voice-sample">
+                    <div class="landing-voice-info">
+                        <span class="landing-voice-name">James</span>
+                        <span class="landing-voice-detail">M &middot; Studio</span>
+                    </div>
+                    <button type="button" class="landing-play-btn" data-sample="en-US-Studio-Q">&#9654; Play</button>
+                </div>
+                <div class="landing-voice-sample">
+                    <div class="landing-voice-info">
+                        <span class="landing-voice-name">Daniel</span>
+                        <span class="landing-voice-detail">M &middot; WaveNet</span>
+                    </div>
+                    <button type="button" class="landing-play-btn" data-sample="en-US-Wavenet-D">&#9654; Play</button>
+                </div>
+                <div class="landing-voice-sample">
+                    <div class="landing-voice-info">
+                        <span class="landing-voice-name">Sarah</span>
+                        <span class="landing-voice-detail">F &middot; Neural2</span>
+                    </div>
+                    <button type="button" class="landing-play-btn" data-sample="en-US-Neural2-C">&#9654; Play</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- How It Works -->
     <section class="landing-steps">
         <div class="landing-container">
@@ -168,5 +220,41 @@
     <footer>
         <p>Text to Storyteller &mdash; Powered by Google Cloud Text-to-Speech &amp; Gemini</p>
     </footer>
+
+    <script>
+    (function() {
+        var audio = new Audio();
+        var activeBtn = null;
+
+        function resetBtn(btn) {
+            btn.innerHTML = '&#9654; Play';
+            btn.classList.remove('playing');
+        }
+
+        function stopAll() {
+            audio.pause();
+            audio.currentTime = 0;
+            if (activeBtn) { resetBtn(activeBtn); activeBtn = null; }
+        }
+
+        audio.addEventListener('ended', stopAll);
+
+        document.querySelectorAll('.landing-play-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var sample = btn.dataset.sample;
+                if (activeBtn === btn && !audio.paused) {
+                    stopAll();
+                    return;
+                }
+                stopAll();
+                activeBtn = btn;
+                btn.innerHTML = '&#9646;&#9646; Stop';
+                btn.classList.add('playing');
+                audio.src = '/static/samples/' + sample + '.wav';
+                audio.play().catch(function() { resetBtn(btn); activeBtn = null; });
+            });
+        });
+    })();
+    </script>
 </body>
 </html>

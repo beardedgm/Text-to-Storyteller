@@ -1275,6 +1275,81 @@ input[type="range"]::-moz-range-thumb {
     line-height: 1.55;
 }
 
+/* Hear Our Voices */
+.landing-voices {
+    padding: 4rem 0;
+    background: var(--bg-secondary);
+}
+
+.landing-voices-subtitle {
+    text-align: center;
+    color: var(--text-secondary);
+    margin-bottom: 2rem;
+    font-size: 1.05rem;
+}
+
+.landing-voice-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.landing-voice-sample {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    transition: border-color 0.2s;
+}
+
+.landing-voice-sample:hover {
+    border-color: var(--accent);
+}
+
+.landing-voice-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.landing-voice-name {
+    font-weight: 600;
+    font-size: 1.05rem;
+    color: var(--text-primary);
+}
+
+.landing-voice-detail {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.landing-play-btn {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    padding: 0.45rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    transition: background 0.2s, color 0.2s;
+}
+
+.landing-play-btn:hover {
+    background: var(--accent);
+    color: var(--bg-primary);
+}
+
+.landing-play-btn.playing {
+    background: var(--accent);
+    color: var(--bg-primary);
+}
+
 /* Steps */
 .landing-steps {
     padding: 4rem 0;
