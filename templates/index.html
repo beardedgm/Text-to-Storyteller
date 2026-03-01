@@ -61,6 +61,11 @@
                 <button class="btn-small" id="btn-save-preset" title="Save current settings as preset">Save</button>
                 <button class="btn-small btn-danger" id="btn-delete-preset" title="Delete selected preset" hidden>Delete</button>
             </div>
+            <div class="preset-save-inline" id="preset-save-inline" hidden>
+                <input type="text" id="preset-name-input" placeholder="Preset name" maxlength="60">
+                <button class="btn-small" id="btn-preset-confirm">OK</button>
+                <button class="btn-small btn-danger" id="btn-preset-cancel">Cancel</button>
+            </div>
         </div>
 
         <!-- Voice trigger (opens modal browser) -->
@@ -85,9 +90,9 @@
             </div>
         </div>
 
-        <!-- Mood -->
-        <div class="settings-row" id="mood-section" hidden>
-            <label>Mood <span class="mood-hint">(Gemini voices only)</span></label>
+        <!-- Mood (always visible; grayed out for non-Gemini voices) -->
+        <div class="settings-row" id="mood-section">
+            <label>Mood <span class="mood-hint" id="mood-hint">(Gemini voices only)</span></label>
             <div class="mood-chips" id="mood-chips"></div>
             <div id="custom-mood-field" hidden>
                 <input type="text" id="custom-mood-input" placeholder="Or type a custom style prompt..." maxlength="500">
@@ -121,6 +126,14 @@
     <!-- Tier Upgrade Banner (populated by JS for free users) -->
     <div id="tier-upgrade-banner"></div>
 
+    <!-- Usage Bar (populated by JS, hidden for unlimited tiers) -->
+    <div class="usage-bar" id="usage-bar" hidden>
+        <div class="usage-bar-track">
+            <div class="usage-bar-fill" id="usage-bar-fill"></div>
+        </div>
+        <span class="usage-bar-label" id="usage-bar-label"></span>
+    </div>
+
     <!-- Generate Button -->
     <button class="btn-generate" id="btn-generate">Generate Audio</button>
 
@@ -148,6 +161,11 @@
         <div class="audio-player">
             <audio id="audio-player" controls preload="auto"></audio>
         </div>
+        <div class="result-actions">
+            <a class="btn-result" id="btn-download" href="#" download>Download WAV</a>
+            <a class="btn-result btn-result-secondary" id="btn-view-library" href="{{ url_for('library_page') }}">View in Library</a>
+        </div>
+        <p class="result-meta" id="result-meta"></p>
     </div>
 </main>
 

@@ -312,9 +312,16 @@ class StorytellerApp {
             progressTime: document.getElementById('progress-time'),
             resultSection: document.getElementById('result-section'),
             audioPlayer: document.getElementById('audio-player'),
+            btnDownload: document.getElementById('btn-download'),
+            btnViewLibrary: document.getElementById('btn-view-library'),
+            resultMeta: document.getElementById('result-meta'),
             presetSelect: document.getElementById('preset-select'),
             btnSavePreset: document.getElementById('btn-save-preset'),
             btnDeletePreset: document.getElementById('btn-delete-preset'),
+            presetSaveInline: document.getElementById('preset-save-inline'),
+            presetNameInput: document.getElementById('preset-name-input'),
+            btnPresetConfirm: document.getElementById('btn-preset-confirm'),
+            btnPresetCancel: document.getElementById('btn-preset-cancel'),
             audioTitle: document.getElementById('audio-title'),
             saveTextCheck: document.getElementById('save-text-check'),
             saveTextTitle: document.getElementById('save-text-title'),
@@ -322,6 +329,9 @@ class StorytellerApp {
             sourceTextSelect: document.getElementById('source-text-select'),
             tierUpgradeNote: document.getElementById('tier-upgrade-note'),
             tierUpgradeBanner: document.getElementById('tier-upgrade-banner'),
+            usageBar: document.getElementById('usage-bar'),
+            usageBarFill: document.getElementById('usage-bar-fill'),
+            usageBarLabel: document.getElementById('usage-bar-label'),
             moodSection: document.getElementById('mood-section'),
             moodChips: document.getElementById('mood-chips'),
             customMoodField: document.getElementById('custom-mood-field'),
@@ -337,6 +347,7 @@ class StorytellerApp {
         this.loadVoices();
         this.loadPresets();
         this.loadSourceTexts();
+        this.loadUsage();
         this.checkUrlParams();
     }
 
@@ -392,7 +403,13 @@ class StorytellerApp {
 
         // Presets
         this.els.presetSelect.addEventListener('change', () => this.applyPreset());
-        this.els.btnSavePreset.addEventListener('click', () => this.savePreset());
+        this.els.btnSavePreset.addEventListener('click', () => this.showPresetSaveForm());
+        this.els.btnPresetConfirm.addEventListener('click', () => this.savePreset());
+        this.els.btnPresetCancel.addEventListener('click', () => this.hidePresetSaveForm());
+        this.els.presetNameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') this.savePreset();
+            if (e.key === 'Escape') this.hidePresetSaveForm();
+        });
         this.els.btnDeletePreset.addEventListener('click', () => this.deletePreset());
 
         // Save text checkbox
@@ -432,6 +449,43 @@ class StorytellerApp {
         }
     }
 
+    async loadUsage() {
+        try {
+            const resp = await fetch('/api/usage');
+            const data = await resp.json();
+            if (data.monthly_limit === null) {
+                // Unlimited tier — don't show usage bar
+                return;
+            }
+            const used = data.chars_used || 0;
+            const limit = data.monthly_limit;
+            const pct = limit > 0 ? Math.min(100, (used / limit) * 100) : 0;
+
+            this.els.usageBar.hidden = false;
+            this.els.usageBarFill.style.width = pct + '%';
+
+            // Color: green < 60%, orange 60-85%, red > 85%
+            if (pct > 85) {
+                this.els.usageBarFill.className = 'usage-bar-fill usage-red';
+            } else if (pct > 60) {
+                this.els.usageBarFill.className = 'usage-bar-fill usage-orange';
+            } else {
+                this.els.usageBarFill.className = 'usage-bar-fill usage-green';
+            }
+
+            this.els.usageBarLabel.textContent =
+                this.formatChars(used) + ' / ' + this.formatChars(limit) + ' chars';
+        } catch (err) {
+            // Non-critical — silently ignore
+        }
+    }
+
+    formatChars(n) {
+        if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+        if (n >= 1000) return Math.round(n / 1000) + 'K';
+        return n.toString();
+    }
+
     renderUpgradePrompts() {
         const linkUrl = '/api/patreon/link';
         // Note inside voice settings
@@ -459,9 +513,13 @@ class StorytellerApp {
         container.innerHTML = '';
 
         if (this.moods.length === 0 && !this.customMoodAllowed) {
+            // No moods available at all — hide section entirely
             if (this.els.moodSection) this.els.moodSection.hidden = true;
             return;
         }
+
+        // Make section visible (mood always shown, grayed if non-Gemini)
+        if (this.els.moodSection) this.els.moodSection.hidden = false;
 
         // "None" chip (default)
         const noneChip = document.createElement('button');
@@ -504,11 +562,25 @@ class StorytellerApp {
         const section = this.els.moodSection;
         if (!section) return;
 
+        const hasMoods = this.moods.length > 0 || this.customMoodAllowed;
+        if (!hasMoods) {
+            section.hidden = true;
+            return;
+        }
+
         const voiceName = this.voiceBrowser.getSelectedVoice();
         const voice = this.voiceData.find(v => v.api_name === voiceName);
         const isGemini = voice && voice.category === 'gemini';
-        const hasMoods = this.moods.length > 0 || this.customMoodAllowed;
-        section.hidden = !isGemini || !hasMoods;
+
+        // Always visible, but grayed out for non-Gemini voices
+        section.hidden = false;
+        section.classList.toggle('mood-disabled', !isGemini);
+
+        // Update hint text
+        const hint = document.getElementById('mood-hint');
+        if (hint) {
+            hint.textContent = isGemini ? '' : 'Select a Gemini voice to use moods';
+        }
     }
 
     setMoodById(moodId) {
@@ -569,16 +641,31 @@ class StorytellerApp {
         this.els.btnDeletePreset.hidden = false;
     }
 
+    showPresetSaveForm() {
+        this.els.btnSavePreset.hidden = true;
+        this.els.presetSaveInline.hidden = false;
+        this.els.presetNameInput.value = '';
+        this.els.presetNameInput.focus();
+    }
+
+    hidePresetSaveForm() {
+        this.els.presetSaveInline.hidden = true;
+        this.els.btnSavePreset.hidden = false;
+    }
+
     async savePreset() {
-        const name = prompt('Preset name:');
-        if (!name || !name.trim()) return;
+        const name = this.els.presetNameInput.value.trim();
+        if (!name) {
+            this.els.presetNameInput.focus();
+            return;
+        }
 
         try {
             const resp = await fetch('/api/presets', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
-                    name: name.trim(),
+                    name: name,
                     voice_name: this.voiceBrowser.getSelectedVoice(),
                     speaking_rate: parseFloat(this.els.speedSlider.value),
                     pitch: parseFloat(this.els.pitchSlider.value),
@@ -596,6 +683,7 @@ class StorytellerApp {
             this.renderPresetOptions();
             this.els.presetSelect.value = data.preset.id;
             this.els.btnDeletePreset.hidden = false;
+            this.hidePresetSaveForm();
         } catch (err) {
             this.showError('Failed to save preset');
         }
@@ -857,6 +945,27 @@ class StorytellerApp {
                 this.els.audioPlayer.src = '/api/stream/' + this.jobId;
                 this.els.audioPlayer.load();
                 this.resetButton();
+
+                // Set download and library links
+                if (data.audio_id) {
+                    this.els.btnDownload.href = '/api/library/' + data.audio_id + '/download';
+                    this.els.btnDownload.hidden = false;
+                } else {
+                    this.els.btnDownload.hidden = true;
+                }
+
+                // Show generation metadata
+                const voice = this.voiceData.find(v => v.api_name === this.voiceBrowser.getSelectedVoice());
+                if (voice && this.els.resultMeta) {
+                    const catDef = this.categories.find(c => c.id === voice.category);
+                    const catLabel = catDef ? catDef.label : voice.category;
+                    this.els.resultMeta.textContent =
+                        voice.display_name + ' (' + catLabel + ') \u00B7 ' +
+                        this.els.speedSlider.value + 'x speed';
+                }
+
+                // Refresh usage bar after generation
+                this.loadUsage();
 
                 // Refresh source texts list in case text was saved
                 if (this.els.saveTextCheck.checked) {
