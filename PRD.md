@@ -446,7 +446,8 @@ Delays are calculated by `voice_registry.get_chunk_delay(voice_name)` and passed
 - **Auth:** `GEMINI_API_KEY` (Google AI Studio key, separate from `GOOGLE_API_KEY`)
 - **Timeout:** 60s per chunk (longer than Cloud TTS's 30s due to generative model latency)
 - **Voices:** 30 voices using mythological names (Zephyr, Puck, Charon, Kore, etc.) — same voice set as Chirp 3: HD but accessed through the Gemini API
-- **Unique features (not yet exposed in UI):** natural language style prompts, inline emotional markup (`[sigh]`, `[laughing]`, `[whispering]`), multi-speaker synthesis
+- **Narration Moods:** 12 TTRPG-themed systemInstruction presets (Storyteller, Dramatic, Mysterious, Calm, Epic, Whimsical, Terrified, Battle Cry, Villainous, Tavern Tale, Sacred, Mournful). Defined in `voice_registry.py` (`MOODS` list). Bard tier gets 5 core moods; Archmage+ gets all 12 plus custom free-text prompts. Sent as `payload['systemInstruction']['parts'][0]['text']` in the Gemini API request.
+- **Other Gemini-unique features (not yet exposed):** inline emotional markup (`[sigh]`, `[laughing]`, `[whispering]`), multi-speaker synthesis
 
 ---
 

@@ -54,13 +54,14 @@ class GeminiTTSClient:
         f'{MODEL}:generateContent'
     )
 
-    def __init__(self, voice_name='Zephyr', chunk_delay=0.5):
+    def __init__(self, voice_name='Zephyr', chunk_delay=0.5, system_instruction=None):
         self.api_key = os.environ.get('GEMINI_API_KEY', '')
         if not self.api_key:
             raise RuntimeError('GEMINI_API_KEY environment variable is not set')
 
         self.voice_name = voice_name
         self.chunk_delay = chunk_delay
+        self.system_instruction = system_instruction
 
     def synthesize_chunk(self, text: str) -> bytes:
         """Send a single text chunk to Gemini TTS and return WAV bytes."""
@@ -77,6 +78,12 @@ class GeminiTTSClient:
                 },
             },
         }
+
+        # Inject mood/style prompt as systemInstruction (Gemini-only feature)
+        if self.system_instruction:
+            payload['systemInstruction'] = {
+                'parts': [{'text': self.system_instruction}]
+            }
 
         resp = requests.post(
             self.ENDPOINT,

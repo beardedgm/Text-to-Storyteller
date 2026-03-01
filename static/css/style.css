@@ -254,6 +254,72 @@ textarea:focus {
     color: var(--text-secondary);
 }
 
+/* ── Mood Selector (Gemini voices) ── */
+
+.setting-full-width { grid-column: 1 / -1; }
+
+.mood-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.6rem;
+}
+
+.mood-chip {
+    padding: 0.3rem 0.7rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+    white-space: nowrap;
+}
+
+.mood-chip:hover {
+    border-color: var(--accent);
+    color: var(--text-primary);
+}
+
+.mood-chip.active {
+    background: var(--accent);
+    color: var(--bg-primary);
+    border-color: var(--accent);
+}
+
+.mood-hint {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 400;
+}
+
+#custom-mood-field {
+    margin-top: 0.5rem;
+}
+
+#custom-mood-input {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+#custom-mood-input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+#custom-mood-field .mood-hint {
+    display: block;
+    margin-top: 0.3rem;
+}
+
 select {
     padding: 0.5rem;
     background: var(--bg-primary);

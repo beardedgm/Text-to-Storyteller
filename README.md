@@ -11,6 +11,7 @@ Whether you're a GM prepping session audio, a writer bringing characters to life
 ## Features
 
 - **Up to 99 Premium Voices** — Eight voice categories from basic Standard to cutting-edge Chirp 3: HD, Gemini, and Studio-quality narration
+- **Narration Moods** — Set the tone with 12 TTRPG-inspired moods (Storyteller, Epic, Villainous, Terrified, and more). Powered by Gemini AI for emotionally expressive delivery
 - **Smart Text Processing** — Upload `.md` or `.txt` files, or paste directly. Long documents are automatically chunked and stitched into seamless audio
 - **Personal Audio Library** — Every generation is saved. Stream, download, and manage your narrated audio anytime
 - **Voice Presets** — Save your favorite voice + speed + pitch combos for one-click access
@@ -48,7 +49,7 @@ Paid tiers are powered by [Patreon](https://www.patreon.com/texttonarrator). Lin
 
 | Category | Voices | Engine | Description |
 |----------|--------|--------|-------------|
-| Gemini | 30 | Gemini | Next-gen Gemini TTS with natural expression and emotional markup |
+| Gemini | 30 | Gemini | Next-gen Gemini TTS with narration moods for emotionally expressive delivery |
 | Chirp 3: HD | 30 | Cloud TTS | Latest generation — the most natural-sounding voices |
 | Chirp HD | 3 | Cloud TTS | High-definition neural voices |
 | Studio | 2 | Cloud TTS | Studio-quality narration (5x character cost) |
