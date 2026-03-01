@@ -26,9 +26,7 @@ class Config:
     PERMANENT_SESSION_LIFETIME = timedelta(hours=24)
     MAX_CONTENT_LENGTH = 2 * 1024 * 1024  # 2 MB upload limit
 
-    # Authentication (legacy single-user values used for DB seeding)
-    AUTH_USERNAME = os.environ.get('AUTH_USERNAME', 'ddedmon')
-    AUTH_PASSWORD_HASH = os.environ.get('AUTH_PASSWORD_HASH', '')
+    # Authentication
     REGISTRATION_ENABLED = os.environ.get('REGISTRATION_ENABLED', '1') == '1'
 
     # MongoDB

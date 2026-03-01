@@ -1,4 +1,5 @@
 import os
+import random
 import secrets
 import struct
 import uuid
@@ -48,6 +49,16 @@ UUID_WAV_RE = re.compile(
 
 # Initialize MongoDB
 mongo_db = init_db(app.config['MONGO_URI'], app.config['MONGO_DB_NAME'])
+
+# Email validation regex
+EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[^@\s]+$')
+
+# Random display names assigned to new accounts
+DEFAULT_DISPLAY_NAMES = [
+    'Wandering Bard', 'Shadow Scribe', 'Tavern Keeper', 'Mystic Narrator',
+    'Dungeon Chronicler', 'Fireside Storyteller', 'Rune Reader', 'Lore Weaver',
+    'Saga Spinner', 'Page Turner', 'Quill Master', 'Tome Walker',
+]
 
 # Ensure data directories exist
 os.makedirs(app.config['DATA_DIR'], exist_ok=True)
@@ -109,25 +120,25 @@ def login():
 
     error = None
     if request.method == 'POST':
-        username = request.form.get('username', '').strip()
+        email = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
 
-        user = mongo_db.users.find_one({'username': username})
+        user = mongo_db.users.find_one({'email': email})
         if user:
             valid = check_password_hash(user['password_hash'], password)
         else:
-            # Constant-time: always hash to prevent timing-based username enumeration
+            # Constant-time: always hash to prevent timing-based email enumeration
             check_password_hash(generate_password_hash('dummy'), password)
             valid = False
 
         if valid:
             session['user_id'] = str(user['_id'])
             session.permanent = True
-            logger.info(f"Login successful: '{username}' from {get_client_ip()}")
+            logger.info(f"Login successful: '{email}' from {get_client_ip()}")
             return redirect(url_for('app_page'))
         else:
-            logger.warning(f"Failed login attempt for '{username}' from {get_client_ip()}")
-            error = 'Invalid username or password'
+            logger.warning(f"Failed login attempt for '{email}' from {get_client_ip()}")
+            error = 'Invalid email or password'
 
     return render_template('login.html', error=error)
 
@@ -142,16 +153,16 @@ def register():
 
     error = None
     if request.method == 'POST':
-        username = request.form.get('username', '').strip()
+        email = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
         confirm = request.form.get('confirm_password', '')
 
-        if not username or len(username) < 3 or len(username) > 30:
-            error = 'Username must be 3-30 characters'
-        elif not re.match(r'^[a-zA-Z0-9_]+$', username):
-            error = 'Username can only contain letters, numbers, and underscores'
-        elif mongo_db.users.find_one({'username': username}):
-            error = 'Username already taken'
+        if not email or not EMAIL_RE.match(email):
+            error = 'Please enter a valid email address'
+        elif len(email) > 254:
+            error = 'Email address is too long'
+        elif mongo_db.users.find_one({'email': email}):
+            error = 'Email already registered'
         elif len(password) < 8:
             error = 'Password must be at least 8 characters'
         elif password != confirm:
@@ -161,15 +172,17 @@ def register():
             if not check_rate_limit(client_ip):
                 error = 'Too many attempts. Please wait and try again.'
             else:
+                display_name = random.choice(DEFAULT_DISPLAY_NAMES)
                 result = mongo_db.users.insert_one({
-                    'username': username,
+                    'email': email,
+                    'display_name': display_name,
                     'password_hash': generate_password_hash(password),
                     'tier': 'free',
                     'created_at': utcnow(),
                 })
                 session['user_id'] = str(result.inserted_id)
                 session.permanent = True
-                logger.info(f"New user registered: '{username}' from {get_client_ip()}")
+                logger.info(f"New user registered: '{email}' from {get_client_ip()}")
                 return redirect(url_for('app_page'))
 
     return render_template('register.html', error=error)
@@ -183,41 +196,34 @@ def logout():
 
 # ── CLI Commands ────────────────────────────────────────────────
 
-@app.cli.command('seed-user')
-def seed_user():
-    """Create initial user from legacy AUTH_USERNAME/AUTH_PASSWORD_HASH env vars."""
-    if mongo_db.users.count_documents({}) > 0:
-        print("Users already exist. Skipping seed.")
-        return
-
-    username = app.config.get('AUTH_USERNAME')
-    password_hash = app.config.get('AUTH_PASSWORD_HASH')
-
-    if not username or not password_hash:
-        print("AUTH_USERNAME and AUTH_PASSWORD_HASH must be set to seed a user.")
-        return
-
-    mongo_db.users.insert_one({
-        'username': username,
-        'password_hash': password_hash,
-        'tier': 'owner',
-        'created_at': utcnow(),
-    })
-    print(f"Seeded user: {username} (tier: owner)")
-
-
 @app.cli.command('set-tier')
-@click.argument('username')
+@click.argument('email')
 @click.argument('tier', type=click.Choice(['free', 'patron', 'owner']))
-def set_tier_cmd(username, tier):
-    """Set a user's subscription tier. Usage: flask set-tier <username> <free|patron|owner>"""
+def set_tier_cmd(email, tier):
+    """Set a user's subscription tier. Usage: flask set-tier <email> <free|patron|owner>"""
     result = mongo_db.users.update_one(
-        {'username': username}, {'$set': {'tier': tier}}
+        {'email': email}, {'$set': {'tier': tier}}
     )
     if result.matched_count:
-        print(f"User '{username}' tier set to '{tier}'.")
+        print(f"User '{email}' tier set to '{tier}'.")
     else:
-        print(f"User '{username}' not found.")
+        print(f"User '{email}' not found.")
+
+
+@app.cli.command('purge-users')
+@click.option('--confirm', is_flag=True, help='Required to actually delete data.')
+def purge_users_cmd(confirm):
+    """Purge ALL users and their related data. Requires --confirm flag."""
+    if not confirm:
+        print("⚠️  This will DELETE all users, audio files, source texts, and presets.")
+        print("   Run with --confirm to proceed.")
+        return
+
+    u = mongo_db.users.delete_many({}).deleted_count
+    a = mongo_db.audio_files.delete_many({}).deleted_count
+    s = mongo_db.source_texts.delete_many({}).deleted_count
+    p = mongo_db.voice_presets.delete_many({}).deleted_count
+    print(f"Purged: {u} users, {a} audio files, {s} source texts, {p} presets.")
 
 
 # ── Patreon OAuth ──────────────────────────────────────────────
@@ -338,21 +344,21 @@ def patreon_callback():
             {'_id': g.current_user_id},
             {'$set': {'tier': 'owner', 'patreon_id': patreon_user_id}},
         )
-        logger.info(f"User {g.current_user['username']} recognised as campaign owner (Patreon ID: {patreon_user_id})")
+        logger.info(f"User {g.current_user['email']} recognised as campaign owner (Patreon ID: {patreon_user_id})")
         session['flash_message'] = 'Welcome back, my liege. All voices are at your command.'
     elif is_active_patron:
         mongo_db.users.update_one(
             {'_id': g.current_user_id},
             {'$set': {'tier': 'patron', 'patreon_id': patreon_user_id}},
         )
-        logger.info(f"User {g.current_user['username']} upgraded to patron (Patreon ID: {patreon_user_id})")
+        logger.info(f"User {g.current_user['email']} upgraded to patron (Patreon ID: {patreon_user_id})")
         session['flash_message'] = 'Patreon linked! You now have access to all 69 premium voices.'
     else:
         mongo_db.users.update_one(
             {'_id': g.current_user_id},
             {'$set': {'patreon_id': patreon_user_id}},
         )
-        logger.info(f"User {g.current_user['username']} linked Patreon but no active pledge (ID: {patreon_user_id})")
+        logger.info(f"User {g.current_user['email']} linked Patreon but no active pledge (ID: {patreon_user_id})")
         session['flash_message'] = 'Patreon account linked, but no active membership found. Subscribe to unlock all voices.'
 
     return redirect(url_for('app_page'))
@@ -535,6 +541,89 @@ def library_page():
 @login_required
 def texts_page():
     return render_template('texts.html')
+
+
+@app.route('/profile')
+@login_required
+def profile_page():
+    flash_msg = session.pop('flash_message', None)
+    return render_template('profile.html', flash_message=flash_msg)
+
+
+# ── API: Profile ───────────────────────────────────────────────
+
+@app.route('/api/profile/display-name', methods=['POST'])
+@login_required
+def update_display_name():
+    data = request.get_json(silent=True) or {}
+    name = data.get('display_name', '').strip()
+    if not name or len(name) < 3 or len(name) > 30:
+        return jsonify({'error': 'Display name must be 3–30 characters'}), 400
+
+    mongo_db.users.update_one(
+        {'_id': g.current_user_id}, {'$set': {'display_name': name}}
+    )
+    return jsonify({'success': True, 'display_name': name})
+
+
+@app.route('/api/profile/email', methods=['POST'])
+@login_required
+def update_email():
+    data = request.get_json(silent=True) or {}
+    new_email = data.get('email', '').strip().lower()
+    current_password = data.get('current_password', '')
+
+    if not new_email or not EMAIL_RE.match(new_email):
+        return jsonify({'error': 'Please enter a valid email address'}), 400
+    if len(new_email) > 254:
+        return jsonify({'error': 'Email address is too long'}), 400
+    if not check_password_hash(g.current_user['password_hash'], current_password):
+        return jsonify({'error': 'Current password is incorrect'}), 403
+
+    # Check uniqueness (exclude self)
+    existing = mongo_db.users.find_one({
+        'email': new_email, '_id': {'$ne': g.current_user_id}
+    })
+    if existing:
+        return jsonify({'error': 'Email already in use by another account'}), 409
+
+    mongo_db.users.update_one(
+        {'_id': g.current_user_id}, {'$set': {'email': new_email}}
+    )
+    return jsonify({'success': True})
+
+
+@app.route('/api/profile/password', methods=['POST'])
+@login_required
+def update_password():
+    data = request.get_json(silent=True) or {}
+    current_password = data.get('current_password', '')
+    new_password = data.get('new_password', '')
+    confirm_password = data.get('confirm_password', '')
+
+    if not check_password_hash(g.current_user['password_hash'], current_password):
+        return jsonify({'error': 'Current password is incorrect'}), 403
+    if len(new_password) < 8:
+        return jsonify({'error': 'New password must be at least 8 characters'}), 400
+    if new_password != confirm_password:
+        return jsonify({'error': 'New passwords do not match'}), 400
+
+    mongo_db.users.update_one(
+        {'_id': g.current_user_id},
+        {'$set': {'password_hash': generate_password_hash(new_password)}}
+    )
+    return jsonify({'success': True})
+
+
+@app.route('/api/patreon/unlink', methods=['POST'])
+@login_required
+def patreon_unlink():
+    mongo_db.users.update_one(
+        {'_id': g.current_user_id},
+        {'$unset': {'patreon_id': ''}, '$set': {'tier': 'free'}}
+    )
+    logger.info(f"User {g.current_user['email']} unlinked Patreon, tier reset to free")
+    return jsonify({'success': True, 'message': 'Patreon unlinked. Tier reset to free.'})
 
 
 # ── API: Voices ─────────────────────────────────────────────────

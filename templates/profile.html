@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block content %}
+<header>
+    <h1>Profile</h1>
+    <p class="subtitle">Manage your account</p>
+</header>
+
+<main>
+    {% if flash_message %}
+    <div class="flash-banner" id="flash-banner">
+        <span>{{ flash_message }}</span>
+        <button class="btn-clear" onclick="this.parentElement.hidden=true">&times;</button>
+    </div>
+    {% endif %}
+
+    <!-- Account Info -->
+    <div class="profile-section">
+        <h3 class="profile-section-title">Account Info</h3>
+        <div class="profile-info-row">
+            <span class="profile-label">Display Name</span>
+            <span class="profile-value" id="profile-display-name">{{ g.current_user.display_name }}</span>
+        </div>
+        <div class="profile-info-row">
+            <span class="profile-label">Email</span>
+            <span class="profile-value" id="profile-email">{{ g.current_user.email }}</span>
+        </div>
+        <div class="profile-info-row">
+            <span class="profile-label">Tier</span>
+            <span class="profile-value">
+                {% if g.current_user.tier == 'owner' %}
+                <span class="profile-badge profile-badge-owner">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#FFD700" stroke="#B8860B" stroke-width="1.5" style="vertical-align: -2px;">
+                        <path d="M2 20h20L19 9l-5 4-2-6-2 6-5-4z"/>
+                        <rect x="2" y="20" width="20" height="2" rx="1"/>
+                    </svg>
+                    Owner
+                </span>
+                {% elif g.current_user.tier == 'patron' %}
+                <span class="profile-badge profile-badge-patron">Patron</span>
+                {% else %}
+                <span class="profile-badge profile-badge-free">Free</span>
+                {% endif %}
+            </span>
+        </div>
+        <div class="profile-info-row">
+            <span class="profile-label">Voice Access</span>
+            <span class="profile-value">
+                {% if g.current_user.tier in ('patron', 'owner') %}
+                All 69 premium voices
+                {% else %}
+                1 voice (Adam)
+                {% endif %}
+            </span>
+        </div>
+        <div class="profile-info-row">
+            <span class="profile-label">Member Since</span>
+            <span class="profile-value">{{ g.current_user.created_at.strftime('%B %d, %Y') if g.current_user.created_at else 'Unknown' }}</span>
+        </div>
+    </div>
+
+    <!-- Patreon Connection -->
+    <div class="profile-section">
+        <h3 class="profile-section-title">Patreon Connection</h3>
+        {% if g.current_user.patreon_id %}
+        <div class="profile-info-row">
+            <span class="profile-label">Status</span>
+            <span class="profile-value">
+                <span class="profile-status profile-status-linked" id="patreon-status">Connected</span>
+            </span>
+        </div>
+        <div id="patreon-actions">
+            <button class="btn-small btn-danger" id="btn-unlink-patreon">Unlink Patreon</button>
+        </div>
+        {% else %}
+        <div class="profile-info-row">
+            <span class="profile-label">Status</span>
+            <span class="profile-value">
+                <span class="profile-status profile-status-unlinked" id="patreon-status">Not connected</span>
+            </span>
+        </div>
+        <div id="patreon-actions">
+            <a href="{{ url_for('patreon_link') }}" class="btn-small btn-primary">Connect Patreon</a>
+        </div>
+        {% endif %}
+        <div class="profile-message" id="patreon-message"></div>
+    </div>
+
+    <!-- Change Display Name -->
+    <div class="profile-section">
+        <h3 class="profile-section-title">Change Display Name</h3>
+        <form class="profile-form" id="form-display-name">
+            <div class="form-group">
+                <label for="new-display-name">New Display Name</label>
+                <input type="text" id="new-display-name" minlength="3" maxlength="30"
+                       placeholder="3–30 characters" value="{{ g.current_user.display_name }}">
+            </div>
+            <button type="submit" class="btn-small btn-primary">Update Name</button>
+            <span class="profile-message" id="display-name-message"></span>
+        </form>
+    </div>
+
+    <!-- Change Email -->
+    <div class="profile-section">
+        <h3 class="profile-section-title">Change Email</h3>
+        <form class="profile-form" id="form-email">
+            <div class="form-group">
+                <label for="new-email">New Email</label>
+                <input type="email" id="new-email" placeholder="you@example.com">
+            </div>
+            <div class="form-group">
+                <label for="email-current-password">Current Password</label>
+                <input type="password" id="email-current-password" placeholder="Required for security">
+            </div>
+            <button type="submit" class="btn-small btn-primary">Update Email</button>
+            <span class="profile-message" id="email-message"></span>
+        </form>
+    </div>
+
+    <!-- Change Password -->
+    <div class="profile-section">
+        <h3 class="profile-section-title">Change Password</h3>
+        <form class="profile-form" id="form-password">
+            <div class="form-group">
+                <label for="current-password">Current Password</label>
+                <input type="password" id="current-password">
+            </div>
+            <div class="form-group">
+                <label for="new-password">New Password</label>
+                <input type="password" id="new-password" minlength="8"
+                       placeholder="At least 8 characters">
+            </div>
+            <div class="form-group">
+                <label for="confirm-new-password">Confirm New Password</label>
+                <input type="password" id="confirm-new-password" minlength="8">
+            </div>
+            <button type="submit" class="btn-small btn-primary">Update Password</button>
+            <span class="profile-message" id="password-message"></span>
+        </form>
+    </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    function showMsg(el, text, isError) {
+        el.textContent = text;
+        el.className = 'profile-message ' + (isError ? 'profile-msg-error' : 'profile-msg-success');
+        setTimeout(() => { el.textContent = ''; el.className = 'profile-message'; }, 5000);
+    }
+
+    async function postJSON(url, body) {
+        const resp = await fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body),
+        });
+        return { ok: resp.ok, data: await resp.json() };
+    }
+
+    // Change Display Name
+    document.getElementById('form-display-name').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msg = document.getElementById('display-name-message');
+        const name = document.getElementById('new-display-name').value.trim();
+        if (!name || name.length < 3 || name.length > 30) {
+            return showMsg(msg, 'Display name must be 3–30 characters', true);
+        }
+        const { ok, data } = await postJSON('/api/profile/display-name', { display_name: name });
+        if (ok) {
+            showMsg(msg, 'Display name updated!', false);
+            document.getElementById('profile-display-name').textContent = data.display_name;
+            const navUser = document.querySelector('.nav-user');
+            if (navUser) navUser.textContent = data.display_name;
+        } else {
+            showMsg(msg, data.error || 'Failed to update', true);
+        }
+    });
+
+    // Change Email
+    document.getElementById('form-email').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msg = document.getElementById('email-message');
+        const email = document.getElementById('new-email').value.trim();
+        const password = document.getElementById('email-current-password').value;
+        if (!email) return showMsg(msg, 'Please enter an email', true);
+        if (!password) return showMsg(msg, 'Please enter your current password', true);
+        const { ok, data } = await postJSON('/api/profile/email', { email, current_password: password });
+        if (ok) {
+            showMsg(msg, 'Email updated!', false);
+            document.getElementById('profile-email').textContent = email;
+            document.getElementById('email-current-password').value = '';
+        } else {
+            showMsg(msg, data.error || 'Failed to update', true);
+        }
+    });
+
+    // Change Password
+    document.getElementById('form-password').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const msg = document.getElementById('password-message');
+        const current = document.getElementById('current-password').value;
+        const newPw = document.getElementById('new-password').value;
+        const confirm = document.getElementById('confirm-new-password').value;
+        if (!current) return showMsg(msg, 'Please enter your current password', true);
+        if (newPw.length < 8) return showMsg(msg, 'New password must be at least 8 characters', true);
+        if (newPw !== confirm) return showMsg(msg, 'New passwords do not match', true);
+        const { ok, data } = await postJSON('/api/profile/password', {
+            current_password: current, new_password: newPw, confirm_password: confirm
+        });
+        if (ok) {
+            showMsg(msg, 'Password updated!', false);
+            document.getElementById('current-password').value = '';
+            document.getElementById('new-password').value = '';
+            document.getElementById('confirm-new-password').value = '';
+        } else {
+            showMsg(msg, data.error || 'Failed to update', true);
+        }
+    });
+
+    // Unlink Patreon
+    const unlinkBtn = document.getElementById('btn-unlink-patreon');
+    if (unlinkBtn) {
+        unlinkBtn.addEventListener('click', async () => {
+            if (!confirm('Unlink your Patreon? Your tier will be reset to Free.')) return;
+            const msg = document.getElementById('patreon-message');
+            const { ok, data } = await postJSON('/api/patreon/unlink', {});
+            if (ok) {
+                showMsg(msg, data.message || 'Patreon unlinked', false);
+                // Reload to reflect tier changes everywhere
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                showMsg(msg, data.error || 'Failed to unlink', true);
+            }
+        });
+    }
+})();
+</script>
+{% endblock %}

@@ -48,8 +48,8 @@ def _ensure_indexes():
     """Create indexes for efficient queries."""
     db = get_db()
 
-    # Users: unique username
-    db.users.create_index('username', unique=True)
+    # Users: unique email
+    db.users.create_index('email', unique=True)
 
     # Audio files: user lookup, sorted by creation date
     db.audio_files.create_index([('user_id', ASCENDING), ('created_at', DESCENDING)])

@@ -13,9 +13,10 @@
             <a href="{{ url_for('app_page') }}" class="nav-link {% if request.endpoint == 'app_page' %}active{% endif %}">Generate</a>
             <a href="{{ url_for('library_page') }}" class="nav-link {% if request.endpoint == 'library_page' %}active{% endif %}">My Audio</a>
             <a href="{{ url_for('texts_page') }}" class="nav-link {% if request.endpoint == 'texts_page' %}active{% endif %}">My Texts</a>
+            <a href="{{ url_for('profile_page') }}" class="nav-link {% if request.endpoint == 'profile_page' %}active{% endif %}">Profile</a>
         </div>
         <div class="nav-right">
-            <span class="nav-user">{{ g.current_user.username if g.current_user else '' }}</span>
+            <span class="nav-user">{{ g.current_user.display_name if g.current_user else '' }}</span>
             {% if g.current_user and g.current_user.tier == 'owner' %}
             <span class="nav-crown" title="The King.">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="#FFD700" stroke="#B8860B" stroke-width="1.5">

@@ -20,10 +20,6 @@ services:
         value: "0.95"
       - key: TTS_PITCH
         value: "-2.0"
-      - key: AUTH_USERNAME
-        value: ddedmon
-      - key: AUTH_PASSWORD_HASH
-        sync: false
       - key: PATREON_CLIENT_ID
         sync: false
       - key: PATREON_CLIENT_SECRET
