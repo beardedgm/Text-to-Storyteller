@@ -7,6 +7,13 @@
 </header>
 
 <main>
+    {% if flash_message %}
+    <div class="flash-banner" id="flash-banner">
+        <span>{{ flash_message }}</span>
+        <button class="btn-clear" onclick="this.parentElement.hidden=true">&times;</button>
+    </div>
+    {% endif %}
+
     <!-- Input Tabs -->
     <div class="tabs">
         <button class="tab active" data-tab="upload">Upload File</button>
@@ -64,6 +71,7 @@
                     <option value="">Loading voices...</option>
                 </select>
                 <span class="voice-count" id="voice-count"></span>
+                <div id="tier-upgrade-note"></div>
             </div>
             <div class="setting">
                 <label for="speed-slider">Speed: <span id="speed-value">0.95x</span></label>
@@ -97,6 +105,9 @@
             <option value="">-- Load from My Texts --</option>
         </select>
     </div>
+
+    <!-- Tier Upgrade Banner (populated by JS for free users) -->
+    <div id="tier-upgrade-banner"></div>
 
     <!-- Generate Button -->
     <button class="btn-generate" id="btn-generate">Generate Audio</button>

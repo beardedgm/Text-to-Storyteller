@@ -54,5 +54,11 @@ class Config:
     # Allowed voice names — derived from voice_registry
     ALLOWED_VOICES = ALLOWED_VOICE_NAMES
 
+    # Patreon OAuth
+    PATREON_CLIENT_ID = os.environ.get('PATREON_CLIENT_ID', '')
+    PATREON_CLIENT_SECRET = os.environ.get('PATREON_CLIENT_SECRET', '')
+    PATREON_REDIRECT_URI = os.environ.get('PATREON_REDIRECT_URI', '')
+    PATREON_CAMPAIGN_ID = os.environ.get('PATREON_CAMPAIGN_ID', '')
+
     # Temporary file storage (for in-progress jobs before persistence)
     TEMP_DIR = tempfile.gettempdir()

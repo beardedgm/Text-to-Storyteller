@@ -1,4 +1,5 @@
 import os
+import secrets
 import struct
 import uuid
 import threading
@@ -18,7 +19,13 @@ from bson import ObjectId
 
 from config import Config
 from models import init_db, get_db, utcnow
-from voice_registry import VOICES, VOICE_CATEGORIES, DEFAULT_VOICE
+import click
+import requests as http_requests
+
+from voice_registry import (
+    VOICES, VOICE_CATEGORIES, DEFAULT_VOICE,
+    get_voices_for_tier, get_allowed_voice_names_for_tier,
+)
 from services.markdown_processor import MarkdownProcessor
 from services.text_chunker import TextChunker
 from services.ssml_builder import SSMLBuilder
@@ -90,6 +97,11 @@ def login_required(f):
     return decorated_function
 
 
+def get_user_tier(user):
+    """Return the user's tier, defaulting to 'free' for legacy users."""
+    return user.get('tier', 'free')
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if session.get('user_id'):
@@ -152,6 +164,7 @@ def register():
                 result = mongo_db.users.insert_one({
                     'username': username,
                     'password_hash': generate_password_hash(password),
+                    'tier': 'free',
                     'created_at': utcnow(),
                 })
                 session['user_id'] = str(result.inserted_id)
@@ -165,7 +178,7 @@ def register():
 @app.route('/logout', methods=['POST'])
 def logout():
     session.clear()
-    return redirect(url_for('login'))
+    return redirect(url_for('landing'))
 
 
 # ── CLI Commands ────────────────────────────────────────────────
@@ -187,9 +200,162 @@ def seed_user():
     mongo_db.users.insert_one({
         'username': username,
         'password_hash': password_hash,
+        'tier': 'owner',
         'created_at': utcnow(),
     })
-    print(f"Seeded user: {username}")
+    print(f"Seeded user: {username} (tier: owner)")
+
+
+@app.cli.command('set-tier')
+@click.argument('username')
+@click.argument('tier', type=click.Choice(['free', 'patron', 'owner']))
+def set_tier_cmd(username, tier):
+    """Set a user's subscription tier. Usage: flask set-tier <username> <free|patron|owner>"""
+    result = mongo_db.users.update_one(
+        {'username': username}, {'$set': {'tier': tier}}
+    )
+    if result.matched_count:
+        print(f"User '{username}' tier set to '{tier}'.")
+    else:
+        print(f"User '{username}' not found.")
+
+
+# ── Patreon OAuth ──────────────────────────────────────────────
+
+@app.route('/api/patreon/link')
+@login_required
+def patreon_link():
+    """Initiate Patreon OAuth flow."""
+    client_id = app.config.get('PATREON_CLIENT_ID')
+    redirect_uri = app.config.get('PATREON_REDIRECT_URI')
+    if not client_id or not redirect_uri:
+        logger.error("Patreon OAuth not configured (missing CLIENT_ID or REDIRECT_URI)")
+        return redirect(url_for('app_page'))
+
+    state = secrets.token_urlsafe(32)
+    session['patreon_oauth_state'] = state
+
+    params = (
+        f"response_type=code"
+        f"&client_id={client_id}"
+        f"&redirect_uri={redirect_uri}"
+        f"&scope=identity%20identity.memberships"
+        f"&state={state}"
+    )
+    return redirect(f"https://www.patreon.com/oauth2/authorize?{params}")
+
+
+@app.route('/api/patreon/callback')
+@login_required
+def patreon_callback():
+    """Handle Patreon OAuth callback — verify membership and set tier."""
+    # Validate state
+    state = request.args.get('state', '')
+    expected = session.pop('patreon_oauth_state', None)
+    if not expected or state != expected:
+        logger.warning(f"Patreon OAuth state mismatch for user {g.current_user_id}")
+        session['flash_message'] = 'Patreon linking failed (invalid state). Please try again.'
+        return redirect(url_for('app_page'))
+
+    code = request.args.get('code')
+    if not code:
+        session['flash_message'] = 'Patreon linking cancelled.'
+        return redirect(url_for('app_page'))
+
+    # Exchange code for access token
+    try:
+        token_resp = http_requests.post(
+            'https://www.patreon.com/api/oauth2/token',
+            data={
+                'code': code,
+                'grant_type': 'authorization_code',
+                'client_id': app.config['PATREON_CLIENT_ID'],
+                'client_secret': app.config['PATREON_CLIENT_SECRET'],
+                'redirect_uri': app.config['PATREON_REDIRECT_URI'],
+            },
+            timeout=15,
+        )
+        token_resp.raise_for_status()
+        access_token = token_resp.json().get('access_token')
+    except Exception as e:
+        logger.error(f"Patreon token exchange failed: {e}")
+        session['flash_message'] = 'Could not connect to Patreon. Please try again.'
+        return redirect(url_for('app_page'))
+
+    # Fetch identity with memberships
+    try:
+        identity_resp = http_requests.get(
+            'https://www.patreon.com/api/oauth2/v2/identity',
+            params={
+                'include': 'memberships.campaign,campaign',
+                'fields[member]': 'patron_status',
+                'fields[user]': 'full_name',
+            },
+            headers={'Authorization': f'Bearer {access_token}'},
+            timeout=15,
+        )
+        identity_resp.raise_for_status()
+        identity = identity_resp.json()
+    except Exception as e:
+        logger.error(f"Patreon identity fetch failed: {e}")
+        session['flash_message'] = 'Could not verify Patreon membership. Please try again.'
+        return redirect(url_for('app_page'))
+
+    # Check for campaign ownership and/or active patron membership
+    campaign_id = app.config.get('PATREON_CAMPAIGN_ID', '')
+    patreon_user_id = identity.get('data', {}).get('id', '')
+
+    # Check if user is the campaign OWNER (creator)
+    is_owner = False
+    user_campaign = (
+        identity.get('data', {})
+        .get('relationships', {})
+        .get('campaign', {})
+        .get('data', {})
+        .get('id', '')
+    )
+    if user_campaign and user_campaign == campaign_id:
+        is_owner = True
+
+    # Check for active patron membership on our campaign
+    is_active_patron = False
+    for item in identity.get('included', []):
+        if item.get('type') != 'member':
+            continue
+        member_campaign = (
+            item.get('relationships', {})
+            .get('campaign', {})
+            .get('data', {})
+            .get('id', '')
+        )
+        patron_status = item.get('attributes', {}).get('patron_status', '')
+        if member_campaign == campaign_id and patron_status == 'active_patron':
+            is_active_patron = True
+            break
+
+    if is_owner:
+        mongo_db.users.update_one(
+            {'_id': g.current_user_id},
+            {'$set': {'tier': 'owner', 'patreon_id': patreon_user_id}},
+        )
+        logger.info(f"User {g.current_user['username']} recognised as campaign owner (Patreon ID: {patreon_user_id})")
+        session['flash_message'] = 'Welcome back, my liege. All voices are at your command.'
+    elif is_active_patron:
+        mongo_db.users.update_one(
+            {'_id': g.current_user_id},
+            {'$set': {'tier': 'patron', 'patreon_id': patreon_user_id}},
+        )
+        logger.info(f"User {g.current_user['username']} upgraded to patron (Patreon ID: {patreon_user_id})")
+        session['flash_message'] = 'Patreon linked! You now have access to all 69 premium voices.'
+    else:
+        mongo_db.users.update_one(
+            {'_id': g.current_user_id},
+            {'$set': {'patreon_id': patreon_user_id}},
+        )
+        logger.info(f"User {g.current_user['username']} linked Patreon but no active pledge (ID: {patreon_user_id})")
+        session['flash_message'] = 'Patreon account linked, but no active membership found. Subscribe to unlock all voices.'
+
+    return redirect(url_for('app_page'))
 
 
 # ── In-memory job tracking ──────────────────────────────────────
@@ -355,7 +521,8 @@ def landing():
 @app.route('/app')
 @login_required
 def app_page():
-    return render_template('index.html')
+    flash_msg = session.pop('flash_message', None)
+    return render_template('index.html', flash_message=flash_msg)
 
 
 @app.route('/library')
@@ -375,10 +542,13 @@ def texts_page():
 @app.route('/api/voices')
 @login_required
 def get_voices():
+    tier = get_user_tier(g.current_user)
+    voices, categories, default = get_voices_for_tier(tier)
     return jsonify({
-        'categories': VOICE_CATEGORIES,
-        'voices': VOICES,
-        'default': DEFAULT_VOICE,
+        'categories': categories,
+        'voices': voices,
+        'default': default,
+        'tier': tier,
     })
 
 
@@ -404,7 +574,8 @@ def create_preset():
 
     if not name or len(name) > 100:
         return jsonify({'error': 'Preset name is required (max 100 chars)'}), 400
-    if voice_name not in Config.ALLOWED_VOICES:
+    tier = get_user_tier(g.current_user)
+    if voice_name not in get_allowed_voice_names_for_tier(tier):
         return jsonify({'error': 'Invalid voice'}), 400
 
     existing = mongo_db.voice_presets.find_one({
@@ -763,9 +934,12 @@ def synthesize():
         if not raw_text.strip():
             return jsonify({'error': 'Input text is empty'}), 400
 
-        voice_name = request.form.get('voice_name', Config.TTS_VOICE_NAME)
-        if voice_name not in Config.ALLOWED_VOICES:
-            voice_name = Config.TTS_VOICE_NAME
+        tier = get_user_tier(g.current_user)
+        allowed_voices = get_allowed_voice_names_for_tier(tier)
+        tier_default = get_voices_for_tier(tier)[2]
+        voice_name = request.form.get('voice_name', tier_default)
+        if voice_name not in allowed_voices:
+            voice_name = tier_default
 
         try:
             speaking_rate = float(request.form.get('speaking_rate', Config.TTS_SPEAKING_RATE))

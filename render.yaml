@@ -24,3 +24,11 @@ services:
         value: ddedmon
       - key: AUTH_PASSWORD_HASH
         sync: false
+      - key: PATREON_CLIENT_ID
+        sync: false
+      - key: PATREON_CLIENT_SECRET
+        sync: false
+      - key: PATREON_REDIRECT_URI
+        sync: false
+      - key: PATREON_CAMPAIGN_ID
+        sync: false

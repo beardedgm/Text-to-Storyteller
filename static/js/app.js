@@ -12,6 +12,7 @@ class StorytellerApp {
         this.categories = [];
         this.activeCategory = 'all';
         this.defaultVoice = '';
+        this.userTier = 'free';
 
         // Presets & source texts
         this.presets = [];
@@ -54,6 +55,8 @@ class StorytellerApp {
             saveTextTitle: document.getElementById('save-text-title'),
             sourceTextPicker: document.getElementById('source-text-picker'),
             sourceTextSelect: document.getElementById('source-text-select'),
+            tierUpgradeNote: document.getElementById('tier-upgrade-note'),
+            tierUpgradeBanner: document.getElementById('tier-upgrade-banner'),
         };
 
         this.setupEventListeners();
@@ -134,10 +137,33 @@ class StorytellerApp {
             this.voiceData = data.voices;
             this.categories = data.categories;
             this.defaultVoice = data.default;
+            this.userTier = data.tier || 'free';
             this.renderCategoryChips();
             this.renderVoiceOptions('all');
+            if (this.userTier === 'free') {
+                this.renderUpgradePrompts();
+            }
         } catch (err) {
             console.error('Failed to load voices:', err);
+        }
+    }
+
+    renderUpgradePrompts() {
+        const linkUrl = '/api/patreon/link';
+        // Note inside voice settings
+        if (this.els.tierUpgradeNote) {
+            this.els.tierUpgradeNote.innerHTML =
+                '<p class="tier-upgrade-note">You\'re using the free voice. ' +
+                '<a href="' + linkUrl + '">Connect your Patreon</a> to unlock all 69 premium voices.</p>';
+        }
+        // Banner above generate button
+        if (this.els.tierUpgradeBanner) {
+            this.els.tierUpgradeBanner.innerHTML =
+                '<div class="tier-upgrade-banner">' +
+                '<span>Want more voices? </span>' +
+                '<a href="' + linkUrl + '" class="landing-btn landing-btn-primary" ' +
+                'style="padding:0.5rem 1.2rem;font-size:0.9rem;">Connect Patreon to Unlock All Voices</a>' +
+                '</div>';
         }
     }
 

@@ -441,6 +441,53 @@ input[type="range"]::-moz-range-thumb {
     color: var(--text-primary);
 }
 
+/* === Flash Banner === */
+.flash-banner {
+    margin-bottom: 1.5rem;
+    padding: 0.75rem 1rem;
+    background: rgba(46, 204, 113, 0.15);
+    border: 1px solid var(--success);
+    border-radius: 8px;
+    color: var(--success);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* === Tier Upgrade Prompts === */
+.tier-upgrade-note {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.tier-upgrade-note a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.tier-upgrade-note a:hover {
+    text-decoration: underline;
+}
+
+.tier-upgrade-banner {
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    padding: 1rem;
+    background: rgba(212, 165, 116, 0.08);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
 /* === Error Banner === */
 .error-banner {
     margin-top: 1rem;
@@ -551,6 +598,19 @@ input[type="range"]::-moz-range-thumb {
 .nav-user {
     color: var(--text-secondary);
     font-size: 0.85rem;
+}
+
+.nav-crown {
+    display: inline-flex;
+    align-items: center;
+    margin-left: 0.3rem;
+    cursor: default;
+    filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.5));
+    transition: filter 0.2s ease;
+}
+
+.nav-crown:hover {
+    filter: drop-shadow(0 0 6px rgba(255, 215, 0, 0.8));
 }
 
 .logout-form {

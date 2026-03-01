@@ -105,3 +105,23 @@ VOICES = [
 ALLOWED_VOICE_NAMES = {v["api_name"] for v in VOICES}
 
 DEFAULT_VOICE = "en-US-Studio-Q"
+
+# ── Tier Configuration ───────────────────────────────────────────
+FREE_TIER_VOICES = {'en-US-Standard-A'}          # Adam only
+FREE_TIER_DEFAULT_VOICE = 'en-US-Standard-A'
+
+
+def get_voices_for_tier(tier):
+    """Return (voices, categories, default_voice) for the given tier."""
+    if tier in ('patron', 'owner'):
+        return VOICES, VOICE_CATEGORIES, DEFAULT_VOICE
+    # Free tier: only voices in FREE_TIER_VOICES
+    free_voices = [v for v in VOICES if v['api_name'] in FREE_TIER_VOICES]
+    free_cats = [c for c in VOICE_CATEGORIES
+                 if c['id'] in {v['category'] for v in free_voices}]
+    return free_voices, free_cats, FREE_TIER_DEFAULT_VOICE
+
+
+def get_allowed_voice_names_for_tier(tier):
+    """Return set of allowed voice api_names for the given tier."""
+    return ALLOWED_VOICE_NAMES if tier in ('patron', 'owner') else FREE_TIER_VOICES
