@@ -210,132 +210,132 @@ MOODS = [
         'id': 'storyteller',
         'label': 'Storyteller',
         'icon': '\U0001F4D6',
-        'description': 'Warm, engaging narrator telling a tale',
+        'description': 'Standard, engaging narration with clear pacing',
         'prompt': (
-            'You are a warm, engaging storyteller narrating an adventure. '
-            'Speak with a rich, inviting tone that draws listeners into the story. '
-            'Vary your pacing naturally \u2014 slow down for suspense, quicken for excitement.'
+            'You are a storyteller narrating an adventure. '
+            'Speak with clear, well-paced narration \u2014 steady rhythm, natural pauses '
+            'between sentences, and an engaging tone that carries the listener through the tale.'
         ),
     },
     {
         'id': 'dramatic',
         'label': 'Dramatic',
         'icon': '\U0001F3AD',
-        'description': 'Theatrical, high-stakes delivery',
+        'description': 'High tension, pregnant pauses, and serious delivery',
         'prompt': (
-            'Deliver this with theatrical intensity and dramatic flair. '
-            'Emphasize key words, build tension through pauses and vocal dynamics. '
-            'Each sentence should feel like the fate of the world hangs on every word.'
+            'Deliver this with high tension and serious gravity. '
+            'Use pregnant pauses to build suspense. Your tone should be heavy and '
+            'deliberate \u2014 every word carries weight, as if the fate of the world hangs in the balance.'
         ),
     },
     {
         'id': 'mysterious',
         'label': 'Mysterious',
         'icon': '\U0001F311',
-        'description': 'Dark, suspenseful, enigmatic',
+        'description': 'Hushed, breathy, and ominous tones',
         'prompt': (
-            'Read this in a dark, mysterious tone full of suspense and intrigue. '
-            'Speak softly at times, as if sharing forbidden secrets. '
-            'Your voice should evoke shadowy corridors and ancient riddles.'
+            'Read this in a hushed, breathy voice full of ominous undertones. '
+            'Speak softly, as if sharing forbidden secrets in a shadowy corridor. '
+            'Let your words linger with dark intrigue and quiet dread.'
         ),
     },
     {
         'id': 'calm',
         'label': 'Calm',
         'icon': '\U0001F54A',
-        'description': 'Relaxed, measured, soothing',
+        'description': 'Soothing, slow, and relaxing delivery',
         'prompt': (
-            'Read this in a calm, measured, soothing tone. Speak at a relaxed pace '
-            'with gentle emphasis. Your voice should bring peace and clarity '
-            'to every word. Avoid urgency or dramatic peaks.'
+            'Read this in a soothing, slow, and deeply relaxing tone. '
+            'Let each word settle gently. Speak with unhurried calm, '
+            'bringing a sense of peace and quiet comfort to every sentence.'
         ),
     },
     {
         'id': 'epic',
         'label': 'Epic',
         'icon': '\u2694',
-        'description': 'Grand, cinematic, heroic',
+        'description': 'Booming, confident, and heroic inflection',
         'prompt': (
-            'Deliver this with grand, epic gravitas befitting a cinematic narrator. '
-            'Your voice should swell with heroic energy and authority. '
-            'Each sentence should feel like the opening of a legendary saga.'
+            'Deliver this with a booming, confident voice and heroic inflection. '
+            'Speak as if heralding the start of a legendary saga. '
+            'Your voice should swell with power and authority, bold and unwavering.'
         ),
     },
     {
         'id': 'whimsical',
         'label': 'Whimsical',
         'icon': '\u2728',
-        'description': 'Playful, fairy-tale, lighthearted',
+        'description': 'Light, bouncy, and slightly erratic pacing',
         'prompt': (
-            'Read this with a whimsical, playful tone as if telling a fairy tale. '
-            'Let your voice dance with lighthearted energy and childlike wonder. '
-            'Every sentence should sparkle with enchantment.'
+            'Read this with a light, bouncy energy and slightly erratic pacing \u2014 '
+            'speed up with excitement, slow down with wonder. Your voice should dance '
+            'like a fairy tale, sparkling with playful unpredictability.'
         ),
     },
     {
         'id': 'terrified',
         'label': 'Terrified',
         'icon': '\U0001F631',
-        'description': 'Scared, fearful, trembling voice',
+        'description': 'Shaky, stuttering, and fast-paced panic',
         'prompt': (
-            'Read this as if you are genuinely terrified. Your voice should tremble '
-            'and waver with fear. Speak in hushed, breathless tones, occasionally '
-            'quickening as panic sets in. Something horrifying lurks just out of sight.'
+            'Read this as if you are terrified. Your voice should be shaky and stuttering, '
+            'quickening with fast-paced panic. Speak in breathless, trembling bursts \u2014 '
+            'something horrifying lurks just out of sight and you can barely hold it together.'
         ),
     },
     {
         'id': 'battle_cry',
         'label': 'Battle Cry',
         'icon': '\U0001F4A5',
-        'description': 'Intense, commanding, battle energy',
+        'description': 'Loud, aggressive, and highly energized',
         'prompt': (
-            'Deliver this with intense, commanding energy as if rallying troops. '
-            'Your voice should be powerful, bold, and electrifying. '
-            'Each word should feel like a war cry that could inspire an army to charge.'
+            'Deliver this loud, aggressive, and highly energized \u2014 '
+            'like a war cry rallying an army to charge. Your voice should be powerful '
+            'and electrifying, each word punching forward with raw, commanding intensity.'
         ),
     },
     {
         'id': 'villainous',
         'label': 'Villainous',
         'icon': '\U0001F608',
-        'description': 'Menacing, sinister, evil monologue',
+        'description': 'Arrogant, sneering, and dripping with contempt',
         'prompt': (
-            'Read this as a menacing villain delivering a sinister monologue. '
-            'Speak with dark relish and cruel amusement. Let your voice drip '
-            'with malice. Pause for dramatic effect, savoring the fear you inspire.'
+            'Read this as an arrogant villain, sneering and dripping with contempt. '
+            'Speak with dark superiority and cruel amusement, savoring every word. '
+            'Your voice should ooze disdain, as if everyone around you is beneath your notice.'
         ),
     },
     {
         'id': 'tavern_tale',
         'label': 'Tavern Tale',
         'icon': '\U0001F37A',
-        'description': 'Folksy, casual, fireside storytelling',
+        'description': 'Boisterous, warm, and conversational',
         'prompt': (
-            'Tell this as a friendly tavern keeper sharing a tale over drinks by the fire. '
-            'Speak in a folksy, casual, warm manner. Add a conversational quality \u2014 '
-            'chuckle at the funny parts, lean in for the juicy bits.'
+            'Tell this as a boisterous tavern keeper sharing a tale over drinks by the fire. '
+            'Speak warmly and conversationally \u2014 chuckle at the funny parts, lean in for '
+            'the juicy bits. Keep it friendly, loud, and full of life.'
         ),
     },
     {
         'id': 'sacred',
         'label': 'Sacred',
         'icon': '\U0001F56F',
-        'description': 'Reverent, holy, priestly tone',
+        'description': 'Echoing, slow, and deeply reverent',
         'prompt': (
-            'Read this with a reverent, sacred tone as if performing a holy ritual. '
-            'Speak slowly with measured dignity and solemnity. '
-            'Your voice should carry the weight of divine authority.'
+            'Read this with an echoing, slow, deeply reverent tone as if performing a sacred rite. '
+            'Speak with measured solemnity and gravity, each word resonating with divine weight. '
+            'Let silence hang between phrases like incense in a temple.'
         ),
     },
     {
         'id': 'mournful',
         'label': 'Mournful',
         'icon': '\U0001F56F',
-        'description': 'Sad, grieving, somber',
+        'description': 'Somber, heavy, with subtle sighs',
         'prompt': (
-            'Deliver this with deep sadness and somber grief. Your voice should be '
-            'heavy with sorrow, speaking slowly and softly. '
-            'Let pauses convey the weight of mourning. Each word should ache.'
+            'Deliver this with somber, heavy sorrow. Speak slowly and softly, '
+            'letting your voice carry the weight of grief. Allow subtle sighs '
+            'between phrases. Each word should ache with quiet mourning.'
         ),
     },
 ]
