@@ -65,6 +65,11 @@ class GeminiTTSClient:
 
     def synthesize_chunk(self, text: str) -> bytes:
         """Send a single text chunk to Gemini TTS and return WAV bytes."""
+        # Gemini TTS doesn't support systemInstruction — style prompts
+        # must be prepended directly to the text content.
+        if self.system_instruction:
+            text = f'{self.system_instruction}\n\n{text}'
+
         payload = {
             'contents': [{'parts': [{'text': text}]}],
             'generationConfig': {
@@ -78,12 +83,6 @@ class GeminiTTSClient:
                 },
             },
         }
-
-        # Inject mood/style prompt as systemInstruction (Gemini-only feature)
-        if self.system_instruction:
-            payload['systemInstruction'] = {
-                'parts': [{'text': self.system_instruction}]
-            }
 
         resp = requests.post(
             self.ENDPOINT,
